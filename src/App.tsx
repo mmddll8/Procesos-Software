@@ -1,68 +1,69 @@
-import { useEffect, useState } from 'react';
-
-// Definimos la estructura exacta que tiene nuestro archivo JSON
-interface Elemento {
-  id: number;
-  nombre: string;
-  estado: string;
-}
+import { useState } from 'react';
+import { useAuth } from './context/AuthContext';
 
 function App() {
-  const [datos, setDatos] = useState<Elemento[]>([]);
-  const [cargando, setCargando] = useState<boolean>(true);
+  const { session, login, register, logout } = useAuth();
+  const [isRegister, setIsRegister] = useState(false);
+  const [nombre, setNombre] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    // Vite sirve la carpeta 'public' en la raíz de la web, 
-    // así que podemos leer directamente el archivo de esta forma:
-    fetch('/datos.json')
-      .then((respuesta) => respuesta.json())
-      .then((data: Elemento[]) => {
-        setDatos(data);
-        setCargando(false);
-      })
-      .catch((error) => {
-        console.error("Error al cargar el archivo JSON local:", error);
-        setCargando(false);
-      });
-  }, []);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (isRegister) {
+      const success = await register(nombre, email, password);
+      if (!success) setError('Error al crear la cuenta. Inténtalo de nuevo.');
+    } else {
+      const success = await login(email, password);
+      if (!success) setError('Usuario o contraseña incorrectos');
+    }
+  };
 
-  if (cargando) {
-    return <p style={{ padding: '20px', fontFamily: 'Arial' }}>Cargando datos locales...</p>;
-  }
+  const toggleForm = () => {
+    setIsRegister(!isRegister);
+    setError('');
+    setNombre('');
+    setEmail('');
+    setPassword('');
+  };
 
   return (
-    <div style={{ padding: '30px', fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ color: '#2c3e50' }}>Proyecto: Procesos de Software</h1>
-      <h3 style={{ color: '#7f8c8d' }}>Datos leídos localmente desde el archivo JSON:</h3>
+    <div style={{ maxWidth: '400px', margin: '60px auto', padding: '20px', fontFamily: 'sans-serif', border: '1px solid #ccc', borderRadius: '8px' }}>
+      <h2 style={{textAlign: 'center' }}>Healthy Life — URJC</h2>
       
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#34495e', color: '#fff', textAlign: 'left' }}>
-            <th style={{ padding: '12px', border: '1px solid #ddd' }}>ID</th>
-            <th style={{ padding: '12px', border: '1px solid #ddd' }}>Nombre del Elemento</th>
-            <th style={{ padding: '12px', border: '1px solid #ddd' }}>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {datos.map((item) => (
-            <tr key={item.id} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={{ padding: '12px', border: '1px solid #ddd', color: '#333' }}>{item.id}</td>
-              <td style={{ padding: '12px', border: '1px solid #ddd', color: '#333' }}>{item.nombre}</td>
-              <td style={{ 
-                padding: '12px', 
-                border: '1px solid #ddd', 
-                fontWeight: 'bold', 
-                color: item.estado === 'Activo' ? '#27ae60' : '#e67e22' 
-              }}>
-                {item.estado}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      {!session ? (
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <h3>{isRegister ? 'Crear Cuenta' : 'Control de Acceso'}</h3>
+          
+          {error && <p style={{fontSize: '14px', margin: '0' }}>{error}</p>}
+          
+          {isRegister && (
+            <input type="text" placeholder="Nombre y Apellidos" value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ padding: '8px' }} required />)}
+          
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ padding: '8px' }} required />
+          
+          <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} style={{ padding: '8px' }} required />
+          
+          <button type="submit" style={{ padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+            {isRegister ? 'Registrarse' : 'Entrar'}</button>
+
+          <p onClick={toggleForm} style={{ textAlign: 'center', cursor: 'pointer', fontSize: '14px', marginTop: '10px', textDecoration: 'underline' }}>
+            {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}</p>
+        </form>
+      ) : (
+        <div style={{ textAlign: 'center' }}>
+          <h3>¡Sesión Iniciada!</h3>
+          <p>Hola, <strong>{session.nombre}</strong> ({session.email})</p>
+          <p style={{ fontSize: '14px'}}>Tu identificador único de usuario es: <strong style={{ fontFamily: 'monospace' }}>{session.id_user}</strong></p>
+
+          <button onClick={logout} style={{ marginTop: '15px', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            Cerrar Sesión</button>
+        </div>
+      )}</div>
   );
 }
 
 export default App;
-
