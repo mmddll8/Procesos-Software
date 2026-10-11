@@ -7,6 +7,7 @@ function App() {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -14,8 +15,16 @@ function App() {
     setError('');
     
     if (isRegister) {
+      if (password !== confirmPassword) {
+        setError('Las contraseñas no coinciden.');
+        return;
+      }
+
       const success = await register(nombre, email, password);
-      if (!success) setError('Error al crear la cuenta. Inténtalo de nuevo.');
+
+      if (!success) {
+        setError('Error al crear la cuenta. Inténtalo de nuevo.');
+      }
     } else {
       const success = await login(email, password);
       if (!success) setError('Usuario o contraseña incorrectos');
@@ -28,6 +37,7 @@ function App() {
     setNombre('');
     setEmail('');
     setPassword('');
+    setConfirmPassword('');
   };
 
   return (
@@ -43,10 +53,12 @@ function App() {
           {isRegister && (
             <input type="text" placeholder="Nombre y Apellidos" value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ padding: '8px' }} required />)}
           
-          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ padding: '8px' }} required />
-          
-          <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} style={{ padding: '8px' }} required />
-          
+          <input type="email" placeholder="Email" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} style={{ padding: '8px' }} required/>
+
+          <input type="password" placeholder="Contraseña" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} style={{ padding: '8px' }} required/>   
+          {isRegister && (
+          <input type="password" placeholder="Confirmar Contraseña" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ padding: '8px' }} required />)}
+
           <button type="submit" style={{ padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
             {isRegister ? 'Registrarse' : 'Entrar'}</button>
 
