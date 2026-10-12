@@ -1,15 +1,20 @@
 [
-    {
+  {
     "id_user": "usr_98234",
     "nombre": "Carlos Pérez",
     "email": "carlos@urjc.es",
-    "password": "password123"
-    }
-
-
-
-
-
-
-
+    "password": "password123",
+    "hasAllergies": false,
+    "hasDietaryPreferences": false
+  },
+  {
+    "id_user": "aa.6127",
+    "nombre": "aa",
+    "email": "aa@gmail.com",
+    "password": "123123",
+    "hasAllergies": true,
+    "allergies": "12312",
+    "hasDietaryPreferences": true,
+    "dietaryPreferences": "444"
+  }
 ]

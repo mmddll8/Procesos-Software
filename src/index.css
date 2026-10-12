@@ -164,9 +164,44 @@ input {
   width: 100%;
 }
 
+textarea {
+  background: #ffffff;
+  border: 1px solid #d5d7df;
+  border-radius: 6px;
+  padding: 11px !important;
+  font: inherit;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+}
+
 input:focus {
   outline: 2px solid rgba(203, 0, 23, 0.2);
   border-color: var(--urjc-red);
+}
+
+textarea:focus {
+  outline: 2px solid rgba(203, 0, 23, 0.2);
+  border-color: var(--urjc-red);
+}
+
+.preference-question {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+}
+
+.preference-checkbox {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--urjc-red);
 }
 
 #root > div p[style*="underline"] {
@@ -177,5 +212,4 @@ input:focus {
   text-decoration: none;
   font-weight: 600;
 }
-
 

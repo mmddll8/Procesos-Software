@@ -40,7 +40,8 @@ The interface follows the visual identity of Rey Juan Carlos University (URJC), 
 ```text
 Procesos-Software/
 ├── public/
-│   └── users.json
+│   └── DB/
+│       └── users.json
 ├── src/
 │   ├── context/
 │   ├── App.css
@@ -74,11 +75,14 @@ Procesos-Software/
 
 ### `public/`
 
-- `users.json` — Provides mock user data for the initial authentication implementation.
+- `DB/users.json` — Provides mock user data for the initial authentication implementation.
 
 ## Data Management
 
-The application uses `public/users.json` as a mock data source for user authentication. 
+The application uses `public/DB/users.json` as a mock data source for user authentication.
+When running the Vite development server, registrations are sent to the local `/api/users`
+endpoint, which appends the new user to this JSON file. This is only a development/demo
+storage mechanism; the planned SQLite integration will replace it in a future stage.
 SQLite is planned for a future development stage, following the agreements established by the project teams.
 
 
@@ -126,4 +130,3 @@ Open the local URL displayed in the terminal to access the preview.
 ## Project Status
 
 The subsystem is under active development, with the first sprint focused on basic user registration and login. Profile management, preferences, privacy, and access control are planned for future sprints.
-

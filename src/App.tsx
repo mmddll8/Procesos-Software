@@ -8,6 +8,10 @@ function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [hasAllergies, sethasAllergies] = useState(false);
+  const [allergies, setAlergias] = useState('');
+  const [hasDietaryPreferences, sethasDietaryPreferences] = useState(false);
+  const [dietaryPreferences, setPreferenciasDieteticas] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +24,15 @@ function App() {
         return;
       }
 
-      const success = await register(nombre, email, password);
+      const success = await register({
+        nombre,
+        email,
+        password,
+        hasAllergies,
+        allergies: hasAllergies ? allergies : '',
+        hasDietaryPreferences,
+        dietaryPreferences: hasDietaryPreferences ? dietaryPreferences : ''
+      });
 
       if (!success) {
         setError('Error al crear la cuenta. Inténtalo de nuevo.');
@@ -38,6 +50,10 @@ function App() {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    sethasAllergies(false);
+    setAlergias('');
+    sethasDietaryPreferences(false);
+    setPreferenciasDieteticas('');
   };
 
   return (
@@ -58,6 +74,26 @@ function App() {
           <input type="password" placeholder="Contraseña" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} style={{ padding: '8px' }} required/>   
           {isRegister && (
           <input type="password" placeholder="Confirmar Contraseña" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ padding: '8px' }} required />)}
+
+          {isRegister && (
+            <>
+              <label className="preference-question">
+                <input className="preference-checkbox" type="checkbox" checked={hasAllergies} onChange={(e) => sethasAllergies(e.target.checked)} />
+                ¿Tienes alergias o intolerancias?
+              </label>
+              {hasAllergies && (
+                <textarea className="preference-field" placeholder="Indica tus alergias o intolerancias" value={allergies} onChange={(e) => setAlergias(e.target.value)} required />
+              )}
+
+              <label className="preference-question">
+                <input className="preference-checkbox" type="checkbox" checked={hasDietaryPreferences} onChange={(e) => sethasDietaryPreferences(e.target.checked)} />
+                ¿Tienes preferencias dietéticas?
+              </label>
+              {hasDietaryPreferences && (
+                <textarea className="preference-field" placeholder="Indica tus preferencias dietéticas" value={dietaryPreferences} onChange={(e) => setPreferenciasDieteticas(e.target.value)} required />
+              )}
+            </>
+          )}
 
           <button type="submit" style={{ padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
             {isRegister ? 'Registrarse' : 'Entrar'}</button>
