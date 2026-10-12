@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import react from '@vitejs/plugin-react'
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, type Plugin } from 'vitest/config'
 
 const usersFile = path.resolve(process.cwd(), 'public/DB/users.json')
 
@@ -38,4 +38,8 @@ const usersApi = (): Plugin => ({
 
 export default defineConfig({
   plugins: [react(), usersApi()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+  },
 })
