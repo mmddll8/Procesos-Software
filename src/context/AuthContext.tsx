@@ -90,6 +90,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dietaryPreferences: data.dietaryPreferences
       };
 
+      setLocalUsers((prevUsers) => {
+      const updatedUsers = [...prevUsers, newUser];
+
+      localStorage.setItem('hl_users', JSON.stringify(updatedUsers));
+
+      return updatedUsers;
+    });
+
+    try {
       const response = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,10 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (!response.ok) {
-        return false;
+        console.warn('El usuario se ha guardado localmente, pero no en el mock JSON.');
       }
-
-      setLocalUsers((prevUsers) => [...prevUsers, newUser]);
+    } catch {
+      console.warn('No se pudo contactar con el mock de API; se conserva el usuario localmente.');
+    }
       const userSession: UserSession = {
         id_user: generatedId,
         nombre: data.nombre,

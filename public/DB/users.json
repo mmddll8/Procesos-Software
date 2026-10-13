@@ -16,5 +16,35 @@
     "allergies": "12312",
     "hasDietaryPreferences": true,
     "dietaryPreferences": "444"
+  },
+  {
+    "id_user": "victor.5462",
+    "nombre": "Victor",
+    "email": "123@gmail.com",
+    "password": "12345",
+    "hasAllergies": false,
+    "allergies": "",
+    "hasDietaryPreferences": false,
+    "dietaryPreferences": ""
+  },
+  {
+    "id_user": "victor.cadalso.3693",
+    "nombre": "Victor Cadalso",
+    "email": "victor@urjc.es",
+    "password": "123456",
+    "hasAllergies": false,
+    "allergies": "",
+    "hasDietaryPreferences": false,
+    "dietaryPreferences": ""
+  },
+  {
+    "id_user": "victor.cadalso.9770",
+    "nombre": "Victor Cadalso",
+    "email": "victor@urjc.es",
+    "password": "123456",
+    "hasAllergies": true,
+    "allergies": "Gluten",
+    "hasDietaryPreferences": true,
+    "dietaryPreferences": "sodfaowf"
   }
 ]
