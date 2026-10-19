@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from './context/AuthContext';
+import MainMenu from './mainmenu';
 
 function App() {
   const { session, login, register, logout } = useAuth();
@@ -45,6 +46,20 @@ function App() {
 
   const toggleForm = () => {
     setIsRegister(!isRegister);
+    setError('');
+    setNombre('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    sethasAllergies(false);
+    setAlergias('');
+    sethasDietaryPreferences(false);
+    setPreferenciasDieteticas('');
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsRegister(false);
     setError('');
     setNombre('');
     setEmail('');
@@ -103,12 +118,10 @@ function App() {
         </form>
       ) : (
         <div style={{ textAlign: 'center' }}>
+          <MainMenu onLogout={handleLogout} />
           <h3>¡Sesión Iniciada!</h3>
           <p>Hola, <strong>{session.nombre}</strong> ({session.email})</p>
           <p style={{ fontSize: '14px'}}>Tu identificador único de usuario es: <strong style={{ fontFamily: 'monospace' }}>{session.id_user}</strong></p>
-
-          <button onClick={logout} style={{ marginTop: '15px', padding: '8px 12px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            Cerrar Sesión</button>
         </div>
       )}</div>
   );

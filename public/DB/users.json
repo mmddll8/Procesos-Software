@@ -46,5 +46,25 @@
     "allergies": "Gluten",
     "hasDietaryPreferences": true,
     "dietaryPreferences": "sodfaowf"
+  },
+  {
+    "id_user": "jaime.bergad.6812",
+    "nombre": "jaime bergad",
+    "email": "jaime@gmail.com",
+    "password": "ASDASD",
+    "hasAllergies": false,
+    "allergies": "",
+    "hasDietaryPreferences": false,
+    "dietaryPreferences": ""
+  },
+  {
+    "id_user": "jaime.bergad.3172",
+    "nombre": "Jaime Bergad",
+    "email": "jaime@gmail.com",
+    "password": "asd",
+    "hasAllergies": false,
+    "allergies": "",
+    "hasDietaryPreferences": false,
+    "dietaryPreferences": ""
   }
 ]
