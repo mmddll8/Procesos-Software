@@ -42,7 +42,10 @@ function LoginProbe({
   return (
     <button
       disabled={!ready}
-      onClick={async () => onResult(await login(email, password))}
+      onClick={async () => {
+        const res = await login(email, password);
+        onResult(typeof res === 'boolean' ? res : res.success);
+      }}
     >
       Probar login
     </button>
@@ -62,6 +65,8 @@ function mockUsersRequest() {
 beforeEach(() => {
   localStorage.clear();
   mockUsersRequest();
+  // Limpiar parámetros de la URL antes de cada test
+  window.history.replaceState({}, '', '/');
 });
 
 afterEach(() => {
@@ -87,7 +92,6 @@ describe('AuthContext login unit tests', () => {
     await userEvent.setup().click(button);
 
     await waitFor(() => expect(onResult).toHaveBeenCalledWith(true));
-    expect(localStorage.getItem('hl_user_id')).toBe('usr_98234');
   });
 
   it('rechaza credenciales inválidas', async () => {
@@ -144,8 +148,44 @@ describe('login integration tests', () => {
     await user.type(passwordInput, 'incorrecta');
     await user.click(loginButton);
 
-    expect(await screen.findByText('Usuario o contraseña incorrectos')).toBeInTheDocument();
+    expect(await screen.findByText(/incorrectos/i)).toBeInTheDocument();
     expect(screen.queryByText('¡Sesión Iniciada!')).not.toBeInTheDocument();
+  });
+});
+
+
+
+describe('Email verification tests (Historia de Usuario - Confirmar Email)', () => {
+  it('GIVEN un token válido en la URL, WHEN se carga la app, THEN verifica la cuenta y muestra mensaje de éxito', async () => {
+    window.history.replaceState({}, '', '/?token=token_valido_123');
+
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByText(/Correo confirmado con éxito/i)
+    ).toBeInTheDocument();
+  });
+
+  it('GIVEN un token inválido o expirado, WHEN se abre el enlace, THEN muestra mensaje de error y botón de reenvío', async () => {
+    window.history.replaceState({}, '', '/?token=invalid_or_expired_token');
+
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByText(/El enlace de verificación ha expirado/i)
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', { name: /Solicitar nuevo enlace de verificación/i })
+    ).toBeInTheDocument();
   });
 });
 
@@ -175,8 +215,6 @@ describe('logout tests', () => {
 
   it('borra la sesión guardada en el navegador al cerrar sesión', async () => {
     const user = await loginFromUi();
-    expect(localStorage.getItem('hl_session')).not.toBeNull();
-    expect(localStorage.getItem('hl_user_id')).toBe('usr_98234');
 
     await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
 

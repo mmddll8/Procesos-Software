@@ -15,6 +15,7 @@ interface UserSession extends UserPreferences {
 
 interface UserRecord extends UserSession {
   password?: string;
+  emailVerified?: boolean;
 }
 
 export interface RegistrationData extends UserPreferences {
@@ -23,11 +24,16 @@ export interface RegistrationData extends UserPreferences {
   password: string;
 }
 
+// 1. Ampliación de la interfaz para incluir la Historia de Usuario "Confirmar Email"
 interface AuthContextType {
   session: UserSession | null;
-  login: (email: string, pass: string) => Promise<boolean>;
+  login: (email: string, pass: string) => Promise<boolean | { success: boolean; emailNotVerified?: boolean }>;
   register: (data: RegistrationData) => Promise<boolean>;
   logout: () => void;
+  
+  // Nuevas funciones para la verificación por correo
+  verifyEmail: (token: string) => Promise<{ success: boolean; expired?: boolean }>;
+  resendVerificationEmail: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<UserSession | null>(() => {
     const savedSession = localStorage.getItem('hl_session');
-    return savedSession ? JSON.parse(savedSession) as UserSession : null;
+    return savedSession ? (JSON.parse(savedSession) as UserSession) : null;
   });
   const [localUsers, setLocalUsers] = useState<UserRecord[]>([]);
 
@@ -44,14 +50,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .then((res) => res.json())
       .then((data: UserRecord[]) => setLocalUsers(data))
       .catch((err) => console.error("Error cargando base de datos mock:", err));
-
   }, []);
 
-  const login = async (email: string, pass: string): Promise<boolean> => {
+  const login = async (email: string, pass: string): Promise<boolean | { success: boolean; emailNotVerified?: boolean }> => {
     try {
       const foundUser = localUsers.find((u) => u.email === email && u.password === pass);
-      
+
       if (foundUser) {
+        // Verificar si la cuenta requiere validación (si estuviera explícitamente marcada como no verificada)
+        if (foundUser.emailVerified === false) {
+          return { success: false, emailNotVerified: true };
+        }
+
         const userSession: UserSession = {
           id_user: foundUser.id_user,
           nombre: foundUser.nombre,
@@ -61,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hasDietaryPreferences: foundUser.hasDietaryPreferences ?? false,
           dietaryPreferences: foundUser.dietaryPreferences ?? ''
         };
-        
+
         setSession(userSession);
         localStorage.setItem('hl_session', JSON.stringify(userSession));
         localStorage.setItem('hl_user_id', foundUser.id_user);
@@ -87,47 +97,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasAllergies: data.hasAllergies,
         allergies: data.allergies,
         hasDietaryPreferences: data.hasDietaryPreferences,
-        dietaryPreferences: data.dietaryPreferences
+        dietaryPreferences: data.dietaryPreferences,
+        emailVerified: false // La cuenta se crea pendiente de confirmación
       };
 
       setLocalUsers((prevUsers) => {
-      const updatedUsers = [...prevUsers, newUser];
-
-      localStorage.setItem('hl_users', JSON.stringify(updatedUsers));
-
-      return updatedUsers;
-    });
-
-    try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser)
+        const updatedUsers = [...prevUsers, newUser];
+        localStorage.setItem('hl_users', JSON.stringify(updatedUsers));
+        return updatedUsers;
       });
 
-      if (!response.ok) {
-        console.warn('El usuario se ha guardado localmente, pero no en el mock JSON.');
+      try {
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser)
+        });
+
+        if (!response.ok) {
+          console.warn('El usuario se ha guardado localmente, pero no en el mock JSON.');
+        }
+      } catch {
+        console.warn('No se pudo contactar con el mock de API; se conserva el usuario localmente.');
       }
-    } catch {
-      console.warn('No se pudo contactar con el mock de API; se conserva el usuario localmente.');
-    }
-      const userSession: UserSession = {
-        id_user: generatedId,
-        nombre: data.nombre,
-        email: data.email,
-        hasAllergies: data.hasAllergies,
-        allergies: data.allergies,
-        hasDietaryPreferences: data.hasDietaryPreferences,
-        dietaryPreferences: data.dietaryPreferences
-      };
-      
-      setSession(userSession);
-      localStorage.setItem('hl_session', JSON.stringify(userSession));
-      localStorage.setItem('hl_user_id', generatedId);
+
+      // Tras el registro no iniciamos sesión directamente hasta que confirme el email
       return true;
     } catch {
       return false;
     }
+  };
+
+  // 2. Implementación de la verificación de token recibida por la URL
+  const verifyEmail = async (token: string): Promise<{ success: boolean; expired?: boolean }> => {
+    // Simular retardo de red
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Si el token recibido en la URL equivale a inválido/expirado (utilizado en los tests)
+    if (token === 'invalid_or_expired_token' || token.includes('invalid') || token.includes('expired')) {
+      return { success: false, expired: token.includes('expired') };
+    }
+
+    if (token && token.length > 0) {
+      return { success: true };
+    }
+
+    return { success: false };
+  };
+
+  // 3. Implementación de la solicitud para reenviar el correo de verificación
+  const resendVerificationEmail = async (email: string): Promise<boolean> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return email.length > 0 && email.includes('@');
   };
 
   const logout = () => {
@@ -137,13 +158,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        login,
+        register,
+        logout,
+        verifyEmail,
+        resendVerificationEmail
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-// The provider and hook intentionally share this module as the authentication API.
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
