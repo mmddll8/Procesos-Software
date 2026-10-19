@@ -148,3 +148,65 @@ describe('login integration tests', () => {
     expect(screen.queryByText('¡Sesión Iniciada!')).not.toBeInTheDocument();
   });
 });
+
+describe('logout tests', () => {
+  async function loginFromUi() {
+    const user = userEvent.setup();
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>,
+    );
+
+    await user.type(await screen.findByPlaceholderText('Email'), validCredentials.email);
+    await user.type(screen.getByPlaceholderText('Contraseña'), validCredentials.password);
+    await user.click(screen.getByRole('button', { name: 'Entrar' }));
+    await screen.findByText('¡Sesión Iniciada!');
+    return user;
+  }
+
+  it('muestra el botón "Cerrar sesión" en el menú principal con la sesión activa', async () => {
+    await loginFromUi();
+
+    const menu = screen.getByRole('navigation', { name: 'Menú principal' });
+    expect(menu).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
+  });
+
+  it('borra la sesión guardada en el navegador al cerrar sesión', async () => {
+    const user = await loginFromUi();
+    expect(localStorage.getItem('hl_session')).not.toBeNull();
+    expect(localStorage.getItem('hl_user_id')).toBe('usr_98234');
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+    expect(localStorage.getItem('hl_session')).toBeNull();
+    expect(localStorage.getItem('hl_user_id')).toBeNull();
+  });
+
+  it('vuelve automáticamente a la pantalla de login con el formulario vacío', async () => {
+    const user = await loginFromUi();
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+    expect(screen.queryByText('¡Sesión Iniciada!')).not.toBeInTheDocument();
+    expect(screen.getByText('Control de Acceso')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Email')).toHaveValue('');
+    expect(screen.getByPlaceholderText('Contraseña')).toHaveValue('');
+  });
+
+  it('no restaura la sesión tras cerrar sesión y recargar la app', async () => {
+    const user = await loginFromUi();
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    cleanup();
+
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText('Control de Acceso')).toBeInTheDocument();
+    expect(screen.queryByText('¡Sesión Iniciada!')).not.toBeInTheDocument();
+  });
+});
