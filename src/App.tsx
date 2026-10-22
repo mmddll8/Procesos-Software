@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import MainMenu from './mainmenu';
 
-type Vista = 'inicio' | 'perfil';
+type Vista = 'inicio' | 'perfil' | 'salud';
 
 interface PerfilDatos {
   nombre: string;
@@ -110,6 +110,98 @@ function PerfilView({ session, onVolver }: { session: PerfilDatos; onVolver: () 
           valor={session.hasDietaryPreferences ? session.dietaryPreferences || 'Sí, sin detallar' : 'No'}
           destacado
         />
+      </div>
+
+      <div style={{ padding: '0 24px 24px' }}>
+        <button
+          type="button"
+          onClick={onVolver}
+          style={{
+            padding: '10px 18px',
+            border: `2px solid ${URJC.rojo}`,
+            borderRadius: '8px',
+            background: '#fff',
+            color: URJC.rojo,
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          Volver al inicio
+        </button>
+      </div>
+    </section>
+  );
+}
+
+interface DatoSalud {
+  apartado: string;
+  valor: string;
+}
+
+// HU-10: datos básicos de salud. Por ahora no se muestra nada: las alergias y preferencias vienen del grupo 2.
+function SaludView({ onVolver }: { onVolver: () => void }) {
+  const datos: DatoSalud[] = [];
+
+  return (
+    <section style={tarjeta}>
+      {/* Cabecera en rojo institucional */}
+      <div
+        style={{
+          background: `linear-gradient(135deg, ${URJC.rojo}, ${URJC.rojoOscuro})`,
+          color: '#fff',
+          padding: '28px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '18px',
+        }}
+      >
+        <div
+          style={{
+            width: '68px',
+            height: '68px',
+            borderRadius: '50%',
+            background: '#fff',
+            color: URJC.rojo,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '30px',
+            flexShrink: 0,
+          }}
+        >
+          ♥
+        </div>
+        <div>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.85 }}>Mi salud</div>
+          <h2 style={{ margin: '4px 0 0', fontSize: '24px' }}>Datos básicos de salud</h2>
+        </div>
+      </div>
+
+      <div style={{ padding: '24px' }}>
+        {datos.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '28px 16px',
+              background: URJC.grisSuave,
+              borderRadius: '10px',
+              borderLeft: `4px solid ${URJC.rojo}`,
+            }}
+          >
+            <p style={{ fontSize: '18px', color: URJC.texto, margin: '0 0 8px', fontWeight: 'bold' }}>
+              No hay datos de salud registrados.
+            </p>
+            <p style={{ fontSize: '14px', color: URJC.textoSuave, margin: 0 }}>
+              Cuando haya datos, aparecerán aquí organizados por apartados.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '14px' }}>
+            {datos.map((d) => (
+              <DatoCaja key={d.apartado} etiqueta={d.apartado} valor={d.valor} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '0 24px 24px' }}>
@@ -309,13 +401,13 @@ function App() {
           }}
         >
           <strong style={{ fontSize: '18px' }}>Healthy Life — URJC</strong>
-          <MainMenu onLogout={handleLogout} onMiPerfil={() => setVista('perfil')} />
+          <MainMenu onLogout={handleLogout} onMiPerfil={() => setVista('perfil')} onDatosSalud={() => setVista('salud')} />
         </header>
 
         <main style={{ maxWidth: '720px', margin: '40px auto', padding: '0 16px' }}>
-          {vista === 'perfil' ? (
-            <PerfilView session={session} onVolver={() => setVista('inicio')} />
-          ) : (
+          {vista === 'perfil' && <PerfilView session={session} onVolver={() => setVista('inicio')} />}
+          {vista === 'salud' && <SaludView onVolver={() => setVista('inicio')} />}
+          {vista === 'inicio' && (
             <section style={{ ...tarjeta, padding: '28px' }}>
               <h2 style={{ marginTop: 0, color: URJC.rojo }}>¡Sesión iniciada!</h2>
             </section>
