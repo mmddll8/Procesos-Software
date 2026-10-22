@@ -15,7 +15,8 @@ function App() {
   const [allergies, setAlergias] = useState('');
   const [hasDietaryPreferences, sethasDietaryPreferences] = useState(false);
   const [dietaryPreferences, setPreferenciasDieteticas] = useState('');
-  
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
+
   // Estados de feedback y verificación de correo
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -99,7 +100,8 @@ function App() {
         hasAllergies,
         allergies: hasAllergies ? allergies : '',
         hasDietaryPreferences,
-        dietaryPreferences: hasDietaryPreferences ? dietaryPreferences : ''
+        dietaryPreferences: hasDietaryPreferences ? dietaryPreferences : '',
+        aceptaTerminos
       });
 
       if (!success) {
@@ -137,6 +139,7 @@ function App() {
     setAlergias('');
     sethasDietaryPreferences(false);
     setPreferenciasDieteticas('');
+    setAceptaTerminos(false);
   };
 
   const handleLogout = () => {
@@ -153,6 +156,7 @@ function App() {
     setAlergias('');
     sethasDietaryPreferences(false);
     setPreferenciasDieteticas('');
+    setAceptaTerminos(false);
   };
 
   return (
@@ -213,6 +217,24 @@ function App() {
                 <textarea className="preference-field" placeholder="Indica tus preferencias dietéticas" value={dietaryPreferences} onChange={(e) => setPreferenciasDieteticas(e.target.value)} required />
               )}
             </>
+          )}
+
+          {isRegister && (
+            <label className="preference-question">
+              <input
+                className="preference-checkbox"
+                type="checkbox"
+                checked={aceptaTerminos}
+                onChange={(e) => {
+                  e.currentTarget.setCustomValidity('');
+                  setAceptaTerminos(e.target.checked);
+                  setError('');
+                }}
+                onInvalid={(e) => e.currentTarget.setCustomValidity('Marca esta casilla para continuar.')}
+                required
+              />
+              He leído y acepto los términos de uso y la política de privacidad
+            </label>
           )}
 
           <button type="submit" style={{ padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>

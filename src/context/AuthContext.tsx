@@ -13,15 +13,21 @@ interface UserSession extends UserPreferences {
   email: string;
 }
 
+// Versión de los términos de uso y política de privacidad aceptados (HU-07)
+export const TERMS_VERSION = '1.0';
+
 interface UserRecord extends UserSession {
   password?: string;
   emailVerified?: boolean;
+  termsAcceptedAt?: string;
+  termsVersion?: string;
 }
 
 export interface RegistrationData extends UserPreferences {
   nombre: string;
   email: string;
   password: string;
+  aceptaTerminos: boolean;
 }
 
 // 1. Ampliación de la interfaz para incluir la Historia de Usuario "Confirmar Email"
@@ -85,6 +91,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: RegistrationData): Promise<boolean> => {
     try {
+      // HU-07 / SCRUM-73: no se puede registrar sin aceptar términos y privacidad
+      if (!data.aceptaTerminos) {
+        return false;
+      }
+
       const cleanName = data.nombre.toLowerCase().trim().replace(/\s+/g, '.');
       const randomNum = Math.floor(1000 + Math.random() * 9000);
       const generatedId = `${cleanName}.${randomNum}`;
@@ -98,7 +109,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allergies: data.allergies,
         hasDietaryPreferences: data.hasDietaryPreferences,
         dietaryPreferences: data.dietaryPreferences,
-        emailVerified: false // La cuenta se crea pendiente de confirmación
+        emailVerified: false, // La cuenta se crea pendiente de confirmación
+        // HU-07 / SCRUM-71: fecha y versión de los términos aceptados
+        termsAcceptedAt: new Date().toISOString(),
+        termsVersion: TERMS_VERSION
       };
 
       setLocalUsers((prevUsers) => {
