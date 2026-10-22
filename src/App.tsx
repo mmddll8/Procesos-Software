@@ -2,9 +2,140 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import MainMenu from './mainmenu';
 
+type Vista = 'inicio' | 'perfil';
+
+interface PerfilDatos {
+  nombre: string;
+  email: string;
+  id_user: string;
+  hasAllergies: boolean;
+  allergies: string;
+  hasDietaryPreferences: boolean;
+  dietaryPreferences: string;
+}
+
+// Colores institucionales de la URJC
+const URJC = {
+  rojo: '#c8102e',
+  rojoOscuro: '#8f0a20',
+  rojoSuave: '#fdecef',
+  grisSuave: '#f5f6f8',
+  texto: '#222',
+  textoSuave: '#6b6f76',
+} as const;
+
+const tarjeta = {
+  background: '#fff',
+  borderRadius: '14px',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+  overflow: 'hidden',
+} as const;
+
+// Caja de dato: borde rojo a la izquierda; las destacadas van en rojo suave
+function DatoCaja({ etiqueta, valor, destacado = false, mono = false }: { etiqueta: string; valor: string; destacado?: boolean; mono?: boolean }) {
+  return (
+    <div
+      style={{
+        background: destacado ? URJC.rojoSuave : URJC.grisSuave,
+        borderLeft: `4px solid ${URJC.rojo}`,
+        borderRadius: '8px',
+        padding: '14px 16px',
+      }}
+    >
+      <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.06em', color: URJC.rojoOscuro, fontWeight: 'bold', marginBottom: '6px' }}>
+        {etiqueta}
+      </div>
+      <div style={{ fontSize: '16px', color: URJC.texto, fontFamily: mono ? 'monospace' : 'inherit', wordBreak: 'break-word' }}>
+        {valor}
+      </div>
+    </div>
+  );
+}
+
+// HU-08: datos personales del usuario con sesión iniciada
+function PerfilView({ session, onVolver }: { session: PerfilDatos; onVolver: () => void }) {
+  const iniciales = session.nombre
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('');
+
+  return (
+    <section style={tarjeta}>
+      {/* Cabecera en rojo institucional con el nombre y la inicial */}
+      <div
+        style={{
+          background: `linear-gradient(135deg, ${URJC.rojo}, ${URJC.rojoOscuro})`,
+          color: '#fff',
+          padding: '28px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '18px',
+        }}
+      >
+        <div
+          style={{
+            width: '68px',
+            height: '68px',
+            borderRadius: '50%',
+            background: '#fff',
+            color: URJC.rojo,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '24px',
+            fontWeight: 'bold',
+            flexShrink: 0,
+          }}
+        >
+          {iniciales}
+        </div>
+        <div>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.85 }}>Mi perfil</div>
+          <h2 style={{ margin: '4px 0 0', fontSize: '24px' }}>{session.nombre}</h2>
+        </div>
+      </div>
+
+      {/* Datos del usuario en cajas */}
+      <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '14px' }}>
+        <DatoCaja etiqueta="Email" valor={session.email} />
+        <DatoCaja
+          etiqueta="Alergias o intolerancias"
+          valor={session.hasAllergies ? session.allergies || 'Sí, sin detallar' : 'No'}
+          destacado
+        />
+        <DatoCaja
+          etiqueta="Preferencias dietéticas"
+          valor={session.hasDietaryPreferences ? session.dietaryPreferences || 'Sí, sin detallar' : 'No'}
+          destacado
+        />
+      </div>
+
+      <div style={{ padding: '0 24px 24px' }}>
+        <button
+          type="button"
+          onClick={onVolver}
+          style={{
+            padding: '10px 18px',
+            border: `2px solid ${URJC.rojo}`,
+            borderRadius: '8px',
+            background: '#fff',
+            color: URJC.rojo,
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          Volver al inicio
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const { session, login, register, logout, verifyEmail, resendVerificationEmail } = useAuth();
-  
+
   // Estados para formulario
   const [isRegister, setIsRegister] = useState(false);
   const [nombre, setNombre] = useState('');
@@ -16,6 +147,9 @@ function App() {
   const [hasDietaryPreferences, sethasDietaryPreferences] = useState(false);
   const [dietaryPreferences, setPreferenciasDieteticas] = useState('');
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
+
+  // Vista activa dentro de la sesión (inicio o perfil)
+  const [vista, setVista] = useState<Vista>('inicio');
 
   // Estados de feedback y verificación de correo
   const [error, setError] = useState('');
@@ -157,7 +291,39 @@ function App() {
     sethasDietaryPreferences(false);
     setPreferenciasDieteticas('');
     setAceptaTerminos(false);
+    setVista('inicio');
   };
+
+  // Con sesión iniciada: página completa con cabecera y desplegable arriba a la derecha
+  if (session) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f4f5f7', fontFamily: 'sans-serif' }}>
+        <header
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '14px 32px',
+            background: '#c8102e',
+            color: '#fff',
+          }}
+        >
+          <strong style={{ fontSize: '18px' }}>Healthy Life — URJC</strong>
+          <MainMenu onLogout={handleLogout} onMiPerfil={() => setVista('perfil')} />
+        </header>
+
+        <main style={{ maxWidth: '720px', margin: '40px auto', padding: '0 16px' }}>
+          {vista === 'perfil' ? (
+            <PerfilView session={session} onVolver={() => setVista('inicio')} />
+          ) : (
+            <section style={{ ...tarjeta, padding: '28px' }}>
+              <h2 style={{ marginTop: 0, color: URJC.rojo }}>¡Sesión iniciada!</h2>
+            </section>
+          )}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '400px', margin: '60px auto', padding: '20px', fontFamily: 'sans-serif', border: '1px solid #ccc', borderRadius: '8px' }}>
@@ -168,7 +334,7 @@ function App() {
         <div style={{ textAlign: 'center', padding: '20px' }}>
           <p>Verificando tu correo electrónico...</p>
         </div>
-      ) : !session ? (
+      ) : (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <h3>{isRegister ? 'Crear Cuenta' : 'Control de Acceso'}</h3>
 
@@ -245,13 +411,6 @@ function App() {
             {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
           </p>
         </form>
-      ) : (
-        <div style={{ textAlign: 'center' }}>
-          <MainMenu onLogout={handleLogout} />
-          <h3>¡Sesión Iniciada!</h3>
-          <p>Hola, <strong>{session.nombre}</strong> ({session.email})</p>
-          <p style={{ fontSize: '14px' }}>Tu identificador único de usuario es: <strong style={{ fontFamily: 'monospace' }}>{session.id_user}</strong></p>
-        </div>
       )}
     </div>
   );
