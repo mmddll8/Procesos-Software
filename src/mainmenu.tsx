@@ -3,14 +3,20 @@ import { useState } from 'react';
 interface MainMenuProps {
   onLogout: () => void;
   onMiPerfil: () => void;
+  onDatosSalud: () => void;
 }
 
-// Desplegable "Mi cuenta", arriba a la derecha, con el perfil del usuario (HU-08)
-function MainMenu({ onLogout, onMiPerfil }: MainMenuProps) {
+// Desplegable "Mi cuenta", arriba a la derecha, con perfil (HU-08) y datos de salud (HU-10)
+function MainMenu({ onLogout, onMiPerfil, onDatosSalud }: MainMenuProps) {
   const [abierto, setAbierto] = useState(false);
 
   const elegirPerfil = () => {
     onMiPerfil();
+    setAbierto(false);
+  };
+
+  const elegirSalud = () => {
+    onDatosSalud();
     setAbierto(false);
   };
 
@@ -63,6 +69,9 @@ function MainMenu({ onLogout, onMiPerfil }: MainMenuProps) {
         >
           <button type="button" onClick={elegirPerfil} style={opcion}>
             Mi perfil
+          </button>
+          <button type="button" onClick={elegirSalud} style={opcion}>
+            Datos básicos de salud
           </button>
           <div style={{ height: '1px', background: '#eee' }} />
           <button type="button" onClick={onLogout} style={{ ...opcion, color: '#c8102e' }}>
