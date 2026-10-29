@@ -7,13 +7,12 @@ export interface UserPreferences {
   dietaryPreferences: string;
 }
 
-interface UserSession extends UserPreferences {
+export interface UserSession extends UserPreferences {
   id_user: string;
   nombre: string;
   email: string;
 }
 
-// Versión de los términos de uso y política de privacidad aceptados (HU-07)
 export const TERMS_VERSION = '1.0';
 
 interface UserRecord extends UserSession {
@@ -30,16 +29,18 @@ export interface RegistrationData extends UserPreferences {
   aceptaTerminos: boolean;
 }
 
-// 1. Ampliación de la interfaz para incluir la Historia de Usuario "Confirmar Email"
-interface AuthContextType {
+export interface AuthContextType {
   session: UserSession | null;
   login: (email: string, pass: string) => Promise<boolean | { success: boolean; emailNotVerified?: boolean }>;
   register: (data: RegistrationData) => Promise<boolean>;
   logout: () => void;
   
-  // Nuevas funciones para la verificación por correo
+  // Verificación por correo
   verifyEmail: (token: string) => Promise<{ success: boolean; expired?: boolean }>;
   resendVerificationEmail: (email: string) => Promise<boolean>;
+
+  // HU-06: Editar perfil
+  updateProfile: (updatedData: Partial<UserSession>) => Promise<{ success: boolean; message?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,7 +64,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const foundUser = localUsers.find((u) => u.email === email && u.password === pass);
 
       if (foundUser) {
-        // Verificar si la cuenta requiere validación (si estuviera explícitamente marcada como no verificada)
         if (foundUser.emailVerified === false) {
           return { success: false, emailNotVerified: true };
         }
@@ -91,7 +91,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: RegistrationData): Promise<boolean> => {
     try {
-      // HU-07 / SCRUM-73: no se puede registrar sin aceptar términos y privacidad
       if (!data.aceptaTerminos) {
         return false;
       }
@@ -109,8 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allergies: data.allergies,
         hasDietaryPreferences: data.hasDietaryPreferences,
         dietaryPreferences: data.dietaryPreferences,
-        emailVerified: false, // La cuenta se crea pendiente de confirmación
-        // HU-07 / SCRUM-71: fecha y versión de los términos aceptados
+        emailVerified: false,
         termsAcceptedAt: new Date().toISOString(),
         termsVersion: TERMS_VERSION
       };
@@ -135,19 +133,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('No se pudo contactar con el mock de API; se conserva el usuario localmente.');
       }
 
-      // Tras el registro no iniciamos sesión directamente hasta que confirme el email
       return true;
     } catch {
       return false;
     }
   };
 
-  // 2. Implementación de la verificación de token recibida por la URL
   const verifyEmail = async (token: string): Promise<{ success: boolean; expired?: boolean }> => {
-    // Simular retardo de red
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    // Si el token recibido en la URL equivale a inválido/expirado (utilizado en los tests)
     if (token === 'invalid_or_expired_token' || token.includes('invalid') || token.includes('expired')) {
       return { success: false, expired: token.includes('expired') };
     }
@@ -159,10 +153,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: false };
   };
 
-  // 3. Implementación de la solicitud para reenviar el correo de verificación
   const resendVerificationEmail = async (email: string): Promise<boolean> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     return email.length > 0 && email.includes('@');
+  };
+
+  const updateProfile = async (updatedData: Partial<UserSession>): Promise<{ success: boolean; message?: string }> => {
+    if (!session) return { success: false, message: 'No existe sesión activa.' };
+
+    if (updatedData.nombre !== undefined && updatedData.nombre.trim() === '') {
+      return { success: false, message: 'El campo nombre no puede quedar vacío.' };
+    }
+
+    const newSession: UserSession = { ...session, ...updatedData };
+    setSession(newSession);
+    localStorage.setItem('hl_session', JSON.stringify(newSession));
+
+    setLocalUsers((prev) =>
+      prev.map((u) => (u.id_user === session.id_user ? { ...u, ...updatedData } : u))
+    );
+
+    return { success: true };
   };
 
   const logout = () => {
@@ -179,7 +190,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         verifyEmail,
-        resendVerificationEmail
+        resendVerificationEmail,
+        updateProfile
       }}
     >
       {children}
@@ -187,7 +199,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth error');

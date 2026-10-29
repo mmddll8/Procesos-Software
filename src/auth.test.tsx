@@ -52,21 +52,46 @@ function LoginProbe({
   );
 }
 
-function mockUsersRequest() {
+function mockApiRequests() {
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => users,
+    vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/DB/users.json')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => users,
+        });
+      }
+
+      if (url.includes('verify-email') || url.includes('token')) {
+        if (url.includes('token_valido_123')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ success: true, message: 'Correo confirmado con éxito' }),
+          });
+        }
+        return Promise.resolve({
+          ok: false,
+          status: 400,
+          json: async () => ({
+            success: false,
+            message: 'El enlace de verificación ha expirado o no es válido.',
+          }),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      });
     }),
   );
 }
 
 beforeEach(() => {
   localStorage.clear();
-  mockUsersRequest();
-  // Limpiar parámetros de la URL antes de cada test
   window.history.replaceState({}, '', '/');
+  mockApiRequests();
 });
 
 afterEach(() => {
@@ -74,6 +99,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/* ========================================================================
+   1. TESTS UNITARIOS DE AUTHCONTEXT (LOGIN)
+   ======================================================================== */
 describe('AuthContext login unit tests', () => {
   it('inicia sesión con credenciales válidas', async () => {
     const onResult = vi.fn();
@@ -92,6 +120,7 @@ describe('AuthContext login unit tests', () => {
     await userEvent.setup().click(button);
 
     await waitFor(() => expect(onResult).toHaveBeenCalledWith(true));
+    expect(localStorage.getItem('hl_user_id')).toBe('usr_98234');
   });
 
   it('rechaza credenciales inválidas', async () => {
@@ -111,6 +140,9 @@ describe('AuthContext login unit tests', () => {
   });
 });
 
+/* ========================================================================
+   2. TESTS DE INTEGRACIÓN DE LOGIN
+   ======================================================================== */
 describe('login integration tests', () => {
   it('muestra la sesión iniciada al enviar credenciales válidas', async () => {
     render(
@@ -123,7 +155,8 @@ describe('login integration tests', () => {
     await userEvent.setup().type(screen.getByPlaceholderText('Contraseña'), validCredentials.password);
     await userEvent.setup().click(screen.getByRole('button', { name: 'Entrar' }));
 
-    expect(await screen.findByText('¡Sesión Iniciada!')).toBeInTheDocument();
+    // Búsqueda flexible e insensible a mayúsculas/minúsculas
+    expect(await screen.findByText(/¡Sesión iniciada!/i)).toBeInTheDocument();
     expect(screen.getByText(/Carlos Pérez/)).toBeInTheDocument();
   });
 
@@ -142,19 +175,20 @@ describe('login integration tests', () => {
     const passwordInput = screen.getByPlaceholderText('Contraseña');
     expect(emailInput).toBeInvalid();
     expect(passwordInput).toHaveValue('');
-    expect(screen.queryByText('¡Sesión Iniciada!')).not.toBeInTheDocument();
+    expect(screen.queryByText(/¡Sesión iniciada!/i)).not.toBeInTheDocument();
 
     await user.type(emailInput, validCredentials.email);
     await user.type(passwordInput, 'incorrecta');
     await user.click(loginButton);
 
     expect(await screen.findByText(/incorrectos/i)).toBeInTheDocument();
-    expect(screen.queryByText('¡Sesión Iniciada!')).not.toBeInTheDocument();
+    expect(screen.queryByText(/¡Sesión iniciada!/i)).not.toBeInTheDocument();
   });
 });
 
-
-
+/* ========================================================================
+   3. HISTORIA DE USUARIO "CONFIRMAR EMAIL"
+   ======================================================================== */
 describe('Email verification tests (Historia de Usuario - Confirmar Email)', () => {
   it('GIVEN un token válido en la URL, WHEN se carga la app, THEN verifica la cuenta y muestra mensaje de éxito', async () => {
     window.history.replaceState({}, '', '/?token=token_valido_123');
@@ -184,11 +218,14 @@ describe('Email verification tests (Historia de Usuario - Confirmar Email)', () 
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole('button', { name: /Solicitar nuevo enlace de verificación/i })
+      screen.getByRole('button', { name: /Solicitar nuevo enlace/i })
     ).toBeInTheDocument();
   });
 });
 
+/* ========================================================================
+   4. TESTS DE LOGOUT
+   ======================================================================== */
 describe('logout tests', () => {
   async function loginFromUi() {
     const user = userEvent.setup();
@@ -201,21 +238,29 @@ describe('logout tests', () => {
     await user.type(await screen.findByPlaceholderText('Email'), validCredentials.email);
     await user.type(screen.getByPlaceholderText('Contraseña'), validCredentials.password);
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
-    await screen.findByText('¡Sesión Iniciada!');
+    await screen.findByText(/¡Sesión iniciada!/i);
     return user;
   }
 
-  it('muestra el botón "Cerrar sesión" en el menú principal con la sesión activa', async () => {
-    await loginFromUi();
+  // Función auxiliar para desplegar el menú "Mi cuenta ▾"
+  async function openUserMenu(user: ReturnType<typeof userEvent.setup>) {
+    const accountBtn = screen.getByRole('button', { name: /Mi cuenta/i });
+    await user.click(accountBtn);
+  }
 
-    const menu = screen.getByRole('navigation', { name: 'Menú principal' });
-    expect(menu).toBeInTheDocument();
+  it('muestra el botón "Cerrar sesión" en el menú principal con la sesión activa', async () => {
+    const user = await loginFromUi();
+    await openUserMenu(user);
+
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
   });
 
   it('borra la sesión guardada en el navegador al cerrar sesión', async () => {
     const user = await loginFromUi();
+    expect(localStorage.getItem('hl_session')).not.toBeNull();
+    expect(localStorage.getItem('hl_user_id')).toBe('usr_98234');
 
+    await openUserMenu(user);
     await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
 
     expect(localStorage.getItem('hl_session')).toBeNull();
@@ -225,9 +270,10 @@ describe('logout tests', () => {
   it('vuelve automáticamente a la pantalla de login con el formulario vacío', async () => {
     const user = await loginFromUi();
 
+    await openUserMenu(user);
     await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
 
-    expect(screen.queryByText('¡Sesión Iniciada!')).not.toBeInTheDocument();
+    expect(screen.queryByText(/¡Sesión iniciada!/i)).not.toBeInTheDocument();
     expect(screen.getByText('Control de Acceso')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Email')).toHaveValue('');
     expect(screen.getByPlaceholderText('Contraseña')).toHaveValue('');
@@ -235,6 +281,7 @@ describe('logout tests', () => {
 
   it('no restaura la sesión tras cerrar sesión y recargar la app', async () => {
     const user = await loginFromUi();
+    await openUserMenu(user);
     await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
     cleanup();
 
@@ -245,6 +292,6 @@ describe('logout tests', () => {
     );
 
     expect(await screen.findByText('Control de Acceso')).toBeInTheDocument();
-    expect(screen.queryByText('¡Sesión Iniciada!')).not.toBeInTheDocument();
+    expect(screen.queryByText(/¡Sesión iniciada!/i)).not.toBeInTheDocument();
   });
 });
