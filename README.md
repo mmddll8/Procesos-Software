@@ -16,14 +16,20 @@ The User Management subsystem covers the following functionalities:
 - **Preference management:** configuring user preferences.
 - **Privacy management:** managing how personal data is used.
 - **Access control:** managing permissions and access to platform resources.
+  
+## Sprints
 
-## Current Sprint
+### Sprint 1 (completed)
+- **User registration:** create an account with email and password.
+- **User login:** authenticate with valid credentials.
 
-The initial sprint focuses on implementing a basic mock of the following user stories:
-
-- **User registration:** users can register using their email address and password.
-- **User login:** users can authenticate using their credentials.
-
+### Sprint 2: Authentication, Profile and Privacy
+- **Accept terms and privacy:** the user accepts the terms and privacy policy [when registering / on first login].
+- **Basic data:** the user provides their basic data, including allergies, intolerances and dietary preferences.
+- **Edit profile:** the user can edit their personal information.
+- **View profile:** the user can see their profile information.
+- **Password recovery:** the user can recover access to their account.
+  
 ## Technology Stack
 
 - **React 19:** building the user interface.
@@ -129,8 +135,7 @@ Open the local URL displayed in the terminal to access the preview.
 
 ## Project Status
 
-The subsystem is under active development, with the first sprint focused on basic user registration and login. Profile management, preferences, privacy, and access control are planned for future sprints.
-
+Sprint 1 (registration and login) is complete. Sprint 2 (profile, basic data, terms and privacy, password recovery) is [in progress]. Sprint 3 (password change, language and units, profile visibility, account deletion) is planned.
 
 ## Acceptance Criteria Verification (Product Owner)
 
@@ -142,3 +147,6 @@ Business requirements have been fulfilled.
 Expected user workflows have been validated.
 No critical issues preventing acceptance have been identified.
 Based on the review, I accept this User Story and confirm that it is ready for release.
+
+
+
