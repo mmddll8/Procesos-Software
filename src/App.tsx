@@ -3,7 +3,7 @@ import { useAuth, type UserSession } from './context/AuthContext';
 import MainMenu from './mainmenu';
 import { getHealthData, hasHealthData } from './healthData';
 
-type Vista = 'inicio' | 'perfil' | 'salud';
+type Vista = 'inicio' | 'perfil' | 'salud' | 'recuperar';
 
 // Colores institucionales de la URJC
 const URJC = {
@@ -485,7 +485,6 @@ function App() {
 
   const handleLogout = () => {
     logout();
-    setIsRegister(false);
     setError('');
     setSuccessMessage('');
     setVerificationFailed(false);
@@ -500,6 +499,24 @@ function App() {
     setAceptaTerminos(false);
     setVista('inicio');
   };
+
+  // ==========================================
+  // RENDERIZADO DE VISTA DE RECUPERACIÓN (PRÁCTICA)
+  // ==========================================
+  if (!session && vista === 'recuperar') {
+    return (
+      <div style={{ maxWidth: '400px', margin: '60px auto', padding: '20px', fontFamily: 'sans-serif', border: '1px solid #ccc', borderRadius: '8px' }}>
+        <h2 style={{ textAlign: 'center' }}>Healthy Life — URJC</h2>
+        <RecuperarClaveView 
+          onVolver={() => {
+            setError('');
+            setSuccessMessage('');
+            setVista('inicio');
+          }} 
+        />
+      </div>
+    );
+  }
 
   // Con sesión iniciada
   if (session) {
@@ -615,11 +632,75 @@ function App() {
             {isRegister ? 'Registrarse' : 'Entrar'}
           </button>
 
+          {/* BOTÓN INTERCEPTOR DE LA HU: Sólo aparece en la vista de Login */}
+          {!isRegister && (
+            <p 
+              onClick={() => {
+                setError('');
+                setSuccessMessage('');
+                setVista('recuperar');
+              }} 
+              style={{ textAlign: 'center', cursor: 'pointer', fontSize: '14px', color: '#0056b3', textDecoration: 'underline', margin: '4px 0 0' }}
+            >
+              ¿Olvidaste tu contraseña?
+            </p>
+          )}
+
           <p onClick={toggleForm} style={{ textAlign: 'center', cursor: 'pointer', fontSize: '14px', marginTop: '10px', textDecoration: 'underline' }}>
             {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
           </p>
         </form>
       )}
+    </div>
+  );
+}
+
+// ==========================================
+// NUEVO COMPONENTE AUXILIAR PARA LA HU DE RECUPERACIÓN
+// ==========================================
+function RecuperarClaveView({ onVolver }: { onVolver: () => void }) {
+  const [email, setEmail] = useState('');
+  const [enviado, setEnviado] = useState(false);
+
+  const manejarEnvio = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Simulación por consola obligatoria de la práctica académica
+    console.log(`[SIMULACIÓN SMTP] Enviando email a: ${email}`);
+    console.log(`[SIMULACIÓN SMTP] URL generada: http://localhost:5173/reset?email=${encodeURIComponent(email)}`);
+    setEnviado(true);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+      <h3>Recuperar Contraseña</h3>
+      {!enviado ? (
+        <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#555', lineHeight: '1.4' }}>
+            Introduce tu dirección de correo electrónico para recibir un enlace de restablecimiento de contraseña.
+          </p>
+          <input
+            type="email"
+            placeholder="Introduce tu Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ padding: '8px' }}
+            required
+          />
+          <button type="submit" style={{ padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', backgroundColor: '#c8102e', color: '#fff' }}>
+            Enviar enlace
+          </button>
+        </form>
+      ) : (
+        /* Cumple con el criterio de seguridad de tu imagen de no revelar si existe el correo */
+        <div style={{ padding: '10px', backgroundColor: '#fdecef', borderRadius: '4px', borderLeft: '4px solid #c8102e' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#c8102e', fontWeight: 'bold' }}>
+            Si el correo está registrado, recibirás un enlace temporal para cambiar la clave.
+          </p>
+        </div>
+      )}
+      <p onClick={onVolver} style={{ textAlign: 'center', cursor: 'pointer', fontSize: '14px', marginTop: '10px', textDecoration: 'underline', color: '#555' }}>
+        Volver al Control de Acceso
+      </p>
     </div>
   );
 }
