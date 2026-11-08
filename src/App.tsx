@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth, type UserSession } from './context/AuthContext';
 import MainMenu from './mainmenu';
+import { getHealthData, hasHealthData } from './healthData';
 
 type Vista = 'inicio' | 'perfil' | 'salud';
 
@@ -236,7 +237,10 @@ function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () 
 }
 
 // HU-10: datos básicos de salud
-function SaludView({ onVolver }: { onVolver: () => void }) {
+function SaludView({ session, onVolver }: { session: UserSession; onVolver: () => void }) {
+  const secciones = getHealthData(session);
+  const hayDatos = hasHealthData(secciones);
+
   return (
     <section style={tarjeta}>
       <div
@@ -272,22 +276,52 @@ function SaludView({ onVolver }: { onVolver: () => void }) {
       </div>
 
       <div style={{ padding: '24px' }}>
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '28px 16px',
-            background: URJC.grisSuave,
-            borderRadius: '10px',
-            borderLeft: `4px solid ${URJC.rojo}`,
-          }}
-        >
-          <p style={{ fontSize: '18px', color: URJC.texto, margin: '0 0 8px', fontWeight: 'bold' }}>
-            No hay datos de salud registrados.
-          </p>
-          <p style={{ fontSize: '14px', color: URJC.textoSuave, margin: 0 }}>
-            Cuando haya datos del Equipo 2, aparecerán aquí organizados por apartados.
-          </p>
-        </div>
+        {hayDatos ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {secciones.map((seccion) => (
+              <section
+                key={seccion.id}
+                aria-labelledby={`salud-${seccion.id}`}
+                style={{
+                  padding: '16px 18px',
+                  background: URJC.grisSuave,
+                  borderRadius: '10px',
+                  borderLeft: `4px solid ${URJC.rojo}`,
+                }}
+              >
+                <h3 id={`salud-${seccion.id}`} style={{ margin: '0 0 6px', fontSize: '16px', color: URJC.rojo }}>
+                  {seccion.titulo}
+                </h3>
+                {seccion.valor ? (
+                  <p style={{ margin: 0, fontSize: '15px', color: URJC.texto, whiteSpace: 'pre-wrap' }}>
+                    {seccion.valor}
+                  </p>
+                ) : (
+                  <p style={{ margin: 0, fontSize: '14px', color: URJC.textoSuave }}>
+                    Sin datos registrados.
+                  </p>
+                )}
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '28px 16px',
+              background: URJC.grisSuave,
+              borderRadius: '10px',
+              borderLeft: `4px solid ${URJC.rojo}`,
+            }}
+          >
+            <p style={{ fontSize: '18px', color: URJC.texto, margin: '0 0 8px', fontWeight: 'bold' }}>
+              No hay datos de salud registrados.
+            </p>
+            <p style={{ fontSize: '14px', color: URJC.textoSuave, margin: 0 }}>
+              Cuando haya datos del Equipo 2, aparecerán aquí organizados por apartados.
+            </p>
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '0 24px 24px' }}>
@@ -487,7 +521,7 @@ function App() {
 
         <main style={{ maxWidth: '720px', margin: '40px auto', padding: '0 16px' }}>
           {vista === 'perfil' && <PerfilView session={session} onVolver={() => setVista('inicio')} />}
-          {vista === 'salud' && <SaludView onVolver={() => setVista('inicio')} />}
+          {vista === 'salud' && <SaludView session={session} onVolver={() => setVista('inicio')} />}
           {vista === 'inicio' && (
             <section style={{ ...tarjeta, padding: '28px' }}>
               <h2 style={{ marginTop: 0, color: URJC.rojo }}>¡Sesión iniciada!</h2>
