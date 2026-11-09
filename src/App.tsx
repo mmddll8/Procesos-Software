@@ -112,7 +112,11 @@ function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () 
         </div>
         <div>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.85 }}>Mi perfil</div>
+<<<<<<< HEAD
           <h2 style={{ margin: '4px 0 0', fontSize: '24px', color:'#fff' }}>{session.nombre}</h2>
+=======
+          <h2 style={{ margin: '4px 0 0', fontSize: '24px', color: '#fff' }}>{session.nombre}</h2>
+>>>>>>> 494c96b6f0a68a09a450daffb2e641869ef083d8
         </div>
       </div>
 
@@ -271,7 +275,11 @@ function SaludView({ session, onVolver }: { session: UserSession; onVolver: () =
         </div>
         <div>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.85 }}>Mi salud</div>
+<<<<<<< HEAD
           <h2 style={{ margin: '4px 0 0', fontSize: '24px', color:'#fff' }}>Datos básicos de salud</h2>
+=======
+          <h2 style={{ margin: '4px 0 0', fontSize: '24px', color: '#fff'  }}>Datos básicos de salud</h2>
+>>>>>>> 494c96b6f0a68a09a450daffb2e641869ef083d8
         </div>
       </div>
 
