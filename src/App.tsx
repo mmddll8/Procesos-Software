@@ -367,60 +367,44 @@ function App() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationFailed, setVerificationFailed] = useState(false);
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
 
-  // Detectar si el usuario abre la App desde el enlace del email (?token=...)
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const token = queryParams.get('token');
-
-    if (token) {
-      handleEmailVerification(token);
-    }
-  }, []);
-
-  const handleEmailVerification = async (token: string) => {
+  const handleEmailVerification = async () => {
     setIsVerifying(true);
     setError('');
     setSuccessMessage('');
-    setVerificationFailed(false);
 
     try {
-      const result = await verifyEmail(token);
+      const result = await verifyEmail(email, verificationCode);
 
       if (result.success) {
-        setSuccessMessage('¡Correo confirmado con éxito! Ya puedes acceder a todas las funcionalidades de la plataforma.');
+        setSuccessMessage('¡Correo confirmado con éxito! Ya puedes iniciar sesión.');
+        setVerificationPending(false);
+        setVerificationCode('');
       } else {
-        setVerificationFailed(true);
-        if (result.expired) {
-          setError('El enlace de verificación ha expirado. Solicita uno nuevo a continuación.');
-        } else {
-          setError('El enlace de verificación no es válido o ya ha sido utilizado.');
-        }
+        setError(result.message ?? 'El código no es válido o ha caducado. Solicita uno nuevo.');
       }
     } catch {
-      setVerificationFailed(true);
-      setError('Ocurrió un error al verificar el correo electrónico.');
+      setError('Ocurrió un error al verificar el código.');
     } finally {
       setIsVerifying(false);
-      window.history.replaceState({}, document.title, window.location.pathname);
     }
   };
 
   const handleResendEmail = async () => {
     if (!email) {
-      setError('Por favor, introduce tu email para reenviar el enlace de verificación.');
+      setError('Por favor, introduce tu email para reenviar el código de verificación.');
       return;
     }
     setError('');
     setSuccessMessage('');
 
-    const sent = await resendVerificationEmail(email);
-    if (sent) {
-      setSuccessMessage('Se ha enviado un nuevo enlace de verificación a tu correo.');
-      setVerificationFailed(false);
+    const result = await resendVerificationEmail(email);
+    if (result.success) {
+      setSuccessMessage('');
     } else {
-      setError('No se pudo enviar el correo de verificación. Revisa el email introducido.');
+      setError(result.message ?? 'No se pudo completar la verificación de demostración.');
     }
   };
 
@@ -435,7 +419,7 @@ function App() {
         return;
       }
 
-      const success = await register({
+      const result = await register({
         nombre,
         email,
         password,
@@ -446,10 +430,11 @@ function App() {
         aceptaTerminos
       });
 
-      if (!success) {
-        setError('Error al crear la cuenta. Inténtalo de nuevo.');
+      if (!result.success) {
+        setError(result.message ?? 'Error al crear la cuenta. Inténtalo de nuevo.');
       } else {
-        setSuccessMessage('Registro realizado con éxito. Te hemos enviado un correo de verificación para activar tu cuenta.');
+        setSuccessMessage('Registro realizado.');
+        setVerificationPending(true);
         setIsRegister(false);
       }
     } else {
@@ -459,7 +444,7 @@ function App() {
       if (!isSuccess) {
         if (typeof result === 'object' && result.emailNotVerified) {
           setError('Debes confirmar tu correo electrónico antes de iniciar sesión.');
-          setVerificationFailed(true);
+          setVerificationPending(true);
         } else {
           setError('Usuario o contraseña incorrectos');
         }
@@ -471,7 +456,8 @@ function App() {
     setIsRegister(!isRegister);
     setError('');
     setSuccessMessage('');
-    setVerificationFailed(false);
+    setVerificationPending(false);
+    setVerificationCode('');
     setNombre('');
     setEmail('');
     setPassword('');
@@ -487,7 +473,6 @@ function App() {
     logout();
     setError('');
     setSuccessMessage('');
-    setVerificationFailed(false);
     setNombre('');
     setEmail('');
     setPassword('');
@@ -497,6 +482,8 @@ function App() {
     sethasDietaryPreferences(false);
     setPreferenciasDieteticas('');
     setAceptaTerminos(false);
+    setVerificationPending(false);
+    setVerificationCode('');
     setVista('inicio');
   };
 
@@ -559,7 +546,7 @@ function App() {
 
       {isVerifying ? (
         <div style={{ textAlign: 'center', padding: '20px' }}>
-          <p>Verificando tu correo electrónico...</p>
+          <p>Verificando tu código...</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -568,13 +555,31 @@ function App() {
           {error && <p style={{ fontSize: '14px', margin: '0', color: '#d9534f' }}>{error}</p>}
           {successMessage && <p style={{ fontSize: '14px', margin: '0', color: '#5cb85c' }}>{successMessage}</p>}
 
-          {verificationFailed && (
+          {verificationPending && (
+            <>
+              <p>Introduce el código de verificación para {email}.</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="Código de verificación"
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                aria-label="Código de verificación"
+              />
+              <button type="button" onClick={handleEmailVerification} disabled={verificationCode.length !== 4}>
+                Verificar código
+              </button>
+            </>
+          )}
+
+          {verificationPending && (
             <button
               type="button"
               onClick={handleResendEmail}
               style={{ padding: '8px', backgroundColor: '#f0ad4e', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
             >
-              Solicitar nuevo enlace de verificación
+              Ver instrucciones de verificación
             </button>
           )}
 

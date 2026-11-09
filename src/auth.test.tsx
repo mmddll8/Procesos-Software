@@ -55,7 +55,7 @@ function LoginProbe({
 function mockApiRequests() {
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockImplementation((url: string) => {
+    vi.fn().mockImplementation((url: string, options?: RequestInit) => {
       if (url.includes('/DB/users.json')) {
         return Promise.resolve({
           ok: true,
@@ -63,11 +63,12 @@ function mockApiRequests() {
         });
       }
 
-      if (url.includes('verify-email') || url.includes('token')) {
-        if (url.includes('token_valido_123')) {
+      if (url.includes('/api/verification/verify')) {
+        const { code } = JSON.parse(options?.body as string) as { code: string };
+        if (code === '1234') {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ success: true, message: 'Correo confirmado con éxito' }),
+            json: async () => ({ success: true }),
           });
         }
         return Promise.resolve({
@@ -75,7 +76,7 @@ function mockApiRequests() {
           status: 400,
           json: async () => ({
             success: false,
-            message: 'El enlace de verificación ha expirado o no es válido.',
+            error: 'El código no es válido o ha caducado. Solicita uno nuevo.',
           }),
         });
       }
@@ -187,11 +188,32 @@ describe('login integration tests', () => {
 });
 
 /* ========================================================================
-   3. HISTORIA DE USUARIO "CONFIRMAR EMAIL"
+   3. HISTORIA DE USUARIO "CONFIRMAR EMAIL CON CÓDIGO"
    ======================================================================== */
-describe('Email verification tests (Historia de Usuario - Confirmar Email)', () => {
-  it('GIVEN un token válido en la URL, WHEN se carga la app, THEN verifica la cuenta y muestra mensaje de éxito', async () => {
-    window.history.replaceState({}, '', '/?token=token_valido_123');
+describe('Email verification tests (código fijo de demostración)', () => {
+  it('verifica la cuenta con el código fijo de demostración', async () => {
+    const pendingUsers = [{
+      ...users[0],
+      id_user: 'usr_pending',
+      email: 'pendiente@urjc.es',
+      password: 'password123',
+      emailVerified: false,
+    }];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+        if (url.includes('/DB/users.json')) {
+          return Promise.resolve({ ok: true, json: async () => pendingUsers });
+        }
+        if (url.includes('/api/verification/verify')) {
+          const { code } = JSON.parse(options?.body as string) as { code: string };
+          return Promise.resolve(code === '1234'
+            ? { ok: true, json: async () => ({ success: true }) }
+            : { ok: false, json: async () => ({ error: 'El código no es válido o ha caducado.' }) });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ success: true }) });
+      }),
+    );
 
     render(
       <AuthProvider>
@@ -199,13 +221,40 @@ describe('Email verification tests (Historia de Usuario - Confirmar Email)', () 
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText(/Correo confirmado con éxito/i)
-    ).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(await screen.findByPlaceholderText('Email'), 'pendiente@urjc.es');
+    await user.type(screen.getByPlaceholderText('Contraseña'), 'password123');
+    await user.click(screen.getByRole('button', { name: 'Entrar' }));
+    expect(await screen.findByText(/Debes confirmar tu correo/i)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Código de verificación'), '1234');
+    await user.click(screen.getByRole('button', { name: 'Verificar código' }));
+    expect(await screen.findByText(/Correo confirmado con éxito/i)).toBeInTheDocument();
   });
 
-  it('GIVEN un token inválido o expirado, WHEN se abre el enlace, THEN muestra mensaje de error y botón de reenvío', async () => {
-    window.history.replaceState({}, '', '/?token=invalid_or_expired_token');
+  it('muestra un error al introducir un código no válido', async () => {
+    const pendingUsers = [{
+      ...users[0],
+      id_user: 'usr_pending',
+      email: 'pendiente@urjc.es',
+      password: 'password123',
+      emailVerified: false,
+    }];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/DB/users.json')) {
+          return Promise.resolve({ ok: true, json: async () => pendingUsers });
+        }
+        if (url.includes('/api/verification/verify')) {
+          return Promise.resolve({
+            ok: false,
+            json: async () => ({ error: 'El código no es válido o ha caducado. Solicita uno nuevo.' }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      }),
+    );
 
     render(
       <AuthProvider>
@@ -213,13 +262,15 @@ describe('Email verification tests (Historia de Usuario - Confirmar Email)', () 
       </AuthProvider>,
     );
 
-    expect(
-      await screen.findByText(/El enlace de verificación ha expirado/i)
-    ).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(await screen.findByPlaceholderText('Email'), 'pendiente@urjc.es');
+    await user.type(screen.getByPlaceholderText('Contraseña'), 'password123');
+    await user.click(screen.getByRole('button', { name: 'Entrar' }));
+    await screen.findByText(/Debes confirmar tu correo/i);
 
-    expect(
-      screen.getByRole('button', { name: /Solicitar nuevo enlace/i })
-    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Código de verificación'), '1111');
+    await user.click(screen.getByRole('button', { name: 'Verificar código' }));
+    expect(await screen.findByText(/El código no es válido o ha caducado/i)).toBeInTheDocument();
   });
 });
 
