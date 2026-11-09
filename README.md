@@ -135,9 +135,9 @@ Open the local URL displayed in the terminal to access the preview.
 
 ## Project Status
 
-Sprint 1 (registration and login) is complete. 
-Sprint 2 (profile, basic data, terms and privacy, password recovery) is complete.
-Sprint 3 (password change, language and units, profile visibility, account deletion) is planned.
+- Sprint 1 (registration and login) is complete.
+- Sprint 2 (profile, basic data, terms and privacy, password recovery) is complete.
+- Sprint 3 (password change, language and units, profile visibility, account deletion) is planned.
 
 ## Acceptance Criteria Verification (Product Owner)
 
