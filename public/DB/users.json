@@ -5,7 +5,11 @@
     "email": "carlos@urjc.es",
     "password": "password123",
     "hasAllergies": false,
-    "hasDietaryPreferences": false
+    "hasDietaryPreferences": false,
+    "salud": { "peso": 78, "altura": 1.75, "imc": 25.5, "horasUltimaNoche": 7.5, "promedioSemanal": 7.2, "vasosHoy": 6, "objetivoDiario": 8 },
+    "rutinas": ["Cardio de la mañana", "Estiramientos y movilidad"],
+    "eventos": ["Carrera solidaria del campus", "Taller de cocina saludable"],
+    "comunidades": ["Runners URJC", "Club de lectura saludable"]
   },
   {
     "id_user": "aa.6127",
@@ -15,7 +19,11 @@
     "hasAllergies": true,
     "allergies": "12312",
     "hasDietaryPreferences": true,
-    "dietaryPreferences": "444"
+    "dietaryPreferences": "444",
+    "salud": { "peso": 78, "altura": 1.75, "imc": 25.5, "horasUltimaNoche": 7.5, "promedioSemanal": 7.2, "vasosHoy": 6, "objetivoDiario": 8 },
+    "rutinas": ["Cardio de la mañana", "Estiramientos y movilidad"],
+    "eventos": ["Carrera solidaria del campus", "Taller de cocina saludable"],
+    "comunidades": ["Runners URJC", "Club de lectura saludable"]
   },
   {
     "id_user": "victor.5462",
@@ -25,7 +33,11 @@
     "hasAllergies": false,
     "allergies": "",
     "hasDietaryPreferences": false,
-    "dietaryPreferences": ""
+    "dietaryPreferences": "",
+    "salud": { "peso": 78, "altura": 1.75, "imc": 25.5, "horasUltimaNoche": 7.5, "promedioSemanal": 7.2, "vasosHoy": 6, "objetivoDiario": 8 },
+    "rutinas": ["Cardio de la mañana", "Estiramientos y movilidad"],
+    "eventos": ["Carrera solidaria del campus", "Taller de cocina saludable"],
+    "comunidades": ["Runners URJC", "Club de lectura saludable"]
   },
   {
     "id_user": "victor.cadalso.3693",
@@ -35,7 +47,11 @@
     "hasAllergies": false,
     "allergies": "",
     "hasDietaryPreferences": false,
-    "dietaryPreferences": ""
+    "dietaryPreferences": "",
+    "salud": { "peso": 78, "altura": 1.75, "imc": 25.5, "horasUltimaNoche": 7.5, "promedioSemanal": 7.2, "vasosHoy": 6, "objetivoDiario": 8 },
+    "rutinas": ["Cardio de la mañana", "Estiramientos y movilidad"],
+    "eventos": ["Carrera solidaria del campus", "Taller de cocina saludable"],
+    "comunidades": ["Runners URJC", "Club de lectura saludable"]
   },
   {
     "id_user": "victor.cadalso.9770",
@@ -45,7 +61,11 @@
     "hasAllergies": true,
     "allergies": "Gluten",
     "hasDietaryPreferences": true,
-    "dietaryPreferences": "sodfaowf"
+    "dietaryPreferences": "sodfaowf",
+    "salud": { "peso": 78, "altura": 1.75, "imc": 25.5, "horasUltimaNoche": 7.5, "promedioSemanal": 7.2, "vasosHoy": 6, "objetivoDiario": 8 },
+    "rutinas": ["Cardio de la mañana", "Estiramientos y movilidad"],
+    "eventos": ["Carrera solidaria del campus", "Taller de cocina saludable"],
+    "comunidades": ["Runners URJC", "Club de lectura saludable"]
   },
   {
     "id_user": "jaime.bergad.6812",
@@ -55,7 +75,11 @@
     "hasAllergies": false,
     "allergies": "",
     "hasDietaryPreferences": false,
-    "dietaryPreferences": ""
+    "dietaryPreferences": "",
+    "salud": { "peso": 78, "altura": 1.75, "imc": 25.5, "horasUltimaNoche": 7.5, "promedioSemanal": 7.2, "vasosHoy": 6, "objetivoDiario": 8 },
+    "rutinas": ["Cardio de la mañana", "Estiramientos y movilidad"],
+    "eventos": ["Carrera solidaria del campus", "Taller de cocina saludable"],
+    "comunidades": ["Runners URJC", "Club de lectura saludable"]
   },
   {
     "id_user": "jaime.bergad.3172",
@@ -65,6 +89,10 @@
     "hasAllergies": false,
     "allergies": "",
     "hasDietaryPreferences": false,
-    "dietaryPreferences": ""
+    "dietaryPreferences": "",
+    "salud": { "peso": 78, "altura": 1.75, "imc": 25.5, "horasUltimaNoche": 7.5, "promedioSemanal": 7.2, "vasosHoy": 6, "objetivoDiario": 8 },
+    "rutinas": ["Cardio de la mañana", "Estiramientos y movilidad"],
+    "eventos": ["Carrera solidaria del campus", "Taller de cocina saludable"],
+    "comunidades": ["Runners URJC", "Club de lectura saludable"]
   }
 ]
