@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth, type UserSession } from './context/AuthContext';
 import MainMenu from './mainmenu';
-import { getHealthData, hasHealthData } from './healthData';
 
 type Vista = 'inicio' | 'perfil' | 'salud' | 'recuperar';
 
@@ -22,6 +21,37 @@ const tarjeta = {
   overflow: 'hidden',
 } as const;
 
+type ClaveSalud = 'peso' | 'altura' | 'imc' | 'horasUltimaNoche' | 'promedioSemanal' | 'vasosHoy' | 'objetivoDiario';
+
+// Campos de salud que se muestran en el perfil (según el JSON de la captura)
+const CAMPOS_SALUD: { clave: ClaveSalud; etiqueta: string; unidad?: string; icono: string }[] = [
+  { clave: 'peso', etiqueta: 'Peso', unidad: 'kg', icono: '⚖️' },
+  { clave: 'altura', etiqueta: 'Altura', unidad: 'm', icono: '📏' },
+  { clave: 'imc', etiqueta: 'IMC', icono: '📊' },
+  { clave: 'horasUltimaNoche', etiqueta: 'Horas de sueño anoche', unidad: 'h', icono: '😴' },
+  { clave: 'promedioSemanal', etiqueta: 'Promedio semanal de sueño', unidad: 'h', icono: '🌙' },
+  { clave: 'vasosHoy', etiqueta: 'Vasos de agua hoy', icono: '💧' },
+  { clave: 'objetivoDiario', etiqueta: 'Objetivo diario de vasos', icono: '🎯' },
+];
+
+// Rutinas, eventos y comunidades de ejemplo del usuario (datos inventados para la demo)
+const ACTIVIDADES_EJEMPLO = {
+  rutinas: ['Cardio de la mañana', 'Estiramientos y movilidad'],
+  eventos: ['Carrera solidaria del campus', 'Taller de cocina saludable'],
+  comunidades: ['Runners URJC', 'Club de lectura saludable'],
+};
+
+// Valores de ejemplo de la captura
+const DATOS_SALUD_EJEMPLO: Record<ClaveSalud, number> = {
+  peso: 78,
+  altura: 1.75,
+  imc: 25.5,
+  horasUltimaNoche: 7.5,
+  promedioSemanal: 7.2,
+  vasosHoy: 6,
+  objetivoDiario: 8,
+};
+
 // HU-06 y HU-08: vista de Perfil con soporte para edición y guardado
 function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () => void }) {
   const { updateProfile } = useAuth();
@@ -33,9 +63,14 @@ function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () 
   const [hasDietaryPreferences, setHasDietaryPreferences] = useState(session.hasDietaryPreferences || false);
   const [dietaryPreferences, setDietaryPreferences] = useState(session.dietaryPreferences || '');
 
+  // Datos de salud del perfil y modo edición
+
   // Estados de feedback al guardar
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Los datos personales solo se pueden editar después de pulsar el botón Editar
+  const [editandoPerfil, setEditandoPerfil] = useState(false);
 
   // Sincronizar el estado local si cambia la sesión global
   useEffect(() => {
@@ -112,12 +147,72 @@ function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () 
         </div>
         <div>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.85 }}>Mi perfil</div>
-          <h2 style={{ margin: '4px 0 0', fontSize: '24px', color:'#fff' }}>{session.nombre}</h2>
+          <h2 style={{ margin: '4px 0 0', fontSize: '24px', color: '#fff' }}>{session.nombre}</h2>
         </div>
       </div>
 
-      {/* Formulario de Edición de Perfil */}
-      <form onSubmit={handleSave} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Datos personales: vista de lectura y formulario solo al pulsar Editar */}
+      {!editandoPerfil && (
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '640px', width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
+          <h3 style={{ margin: 0, color: URJC.texto }}>📋 Mis datos</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {[
+              { etiqueta: 'Nombre completo', valor: session.nombre, icono: '👤' },
+              { etiqueta: 'Email', valor: session.email, icono: '✉️' },
+              { etiqueta: 'Alergias o intolerancias', valor: session.hasAllergies ? session.allergies || 'Sí, sin detallar' : 'No', icono: '🥜' },
+              { etiqueta: 'Preferencias dietéticas', valor: session.hasDietaryPreferences ? session.dietaryPreferences || 'Sí, sin detallar' : 'No', icono: '🥗' },
+            ].map((dato) => (
+              <div key={dato.etiqueta} style={{ background: URJC.grisSuave, borderRadius: '12px', padding: '14px 16px' }}>
+                <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.06em', color: URJC.textoSuave, fontWeight: 'bold', marginBottom: '6px' }}>
+                  {dato.icono} {dato.etiqueta}
+                </div>
+                <div style={{ fontSize: '16px', color: URJC.texto, wordBreak: 'break-word' }}>{dato.valor}</div>
+              </div>
+            ))}
+          </div>
+          <h3 style={{ margin: '8px 0 0', color: URJC.texto }}>🌟 Mi actividad</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+            {[
+              { titulo: '🏃 Mis rutinas', items: ACTIVIDADES_EJEMPLO.rutinas },
+              { titulo: '📅 Mis eventos', items: ACTIVIDADES_EJEMPLO.eventos },
+              { titulo: '👥 Mis comunidades', items: ACTIVIDADES_EJEMPLO.comunidades },
+            ].map((grupo) => (
+              <div key={grupo.titulo} style={{ border: '1px solid #eee', borderRadius: '12px', padding: '14px 16px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: URJC.rojo, marginBottom: '10px' }}>{grupo.titulo}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {grupo.items.map((nombre) => (
+                    <span
+                      key={nombre}
+                      style={{ background: URJC.rojoSuave, color: URJC.rojoOscuro, borderRadius: '999px', padding: '6px 12px', fontSize: '14px' }}
+                    >
+                      {nombre}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginTop: '12px' }}>
+            <button
+              type="button"
+              onClick={() => setEditandoPerfil(true)}
+              style={{ padding: '12px 20px', border: 'none', borderRadius: '8px', background: URJC.rojo, color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}
+            >
+              Editar datos personales
+            </button>
+            <button
+              type="button"
+              onClick={onVolver}
+              style={{ padding: '12px 20px', border: `2px solid ${URJC.rojo}`, borderRadius: '8px', background: '#fff', color: URJC.rojo, cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editandoPerfil && (
+      <form onSubmit={handleSave} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '640px', width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
         <h3 style={{ margin: 0, color: URJC.texto }}>Editar Datos Personales</h3>
 
         {/* Mensajes de feedback */}
@@ -198,7 +293,7 @@ function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () 
         </div>
 
         {/* Botones de acción */}
-        <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginTop: '12px' }}>
           <button
             type="submit"
             style={{
@@ -213,6 +308,13 @@ function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () 
             }}
           >
             Guardar Cambios
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditandoPerfil(false)}
+            style={{ padding: '12px 20px', border: `2px solid ${URJC.rojo}`, borderRadius: '8px', background: '#fff', color: URJC.rojo, cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}
+          >
+            Cancelar
           </button>
           <button
             type="button"
@@ -232,14 +334,15 @@ function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () 
           </button>
         </div>
       </form>
+      )}
     </section>
   );
 }
 
 // HU-10: datos básicos de salud
-function SaludView({ session, onVolver }: { session: UserSession; onVolver: () => void }) {
-  const secciones = getHealthData(session);
-  const hayDatos = hasHealthData(secciones);
+// HU-10: datos básicos de salud, con las tarjetas y el botón Editar
+function SaludView({ onVolver }: { onVolver: () => void }) {
+  const salud = DATOS_SALUD_EJEMPLO;
 
   return (
     <section style={tarjeta}>
@@ -275,56 +378,25 @@ function SaludView({ session, onVolver }: { session: UserSession; onVolver: () =
         </div>
       </div>
 
-      <div style={{ padding: '24px' }}>
-        {hayDatos ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {secciones.map((seccion) => (
-              <section
-                key={seccion.id}
-                aria-labelledby={`salud-${seccion.id}`}
-                style={{
-                  padding: '16px 18px',
-                  background: URJC.grisSuave,
-                  borderRadius: '10px',
-                  borderLeft: `4px solid ${URJC.rojo}`,
-                }}
-              >
-                <h3 id={`salud-${seccion.id}`} style={{ margin: '0 0 6px', fontSize: '16px', color: URJC.rojo }}>
-                  {seccion.titulo}
-                </h3>
-                {seccion.valor ? (
-                  <p style={{ margin: 0, fontSize: '15px', color: URJC.texto, whiteSpace: 'pre-wrap' }}>
-                    {seccion.valor}
-                  </p>
-                ) : (
-                  <p style={{ margin: 0, fontSize: '14px', color: URJC.textoSuave }}>
-                    Sin datos registrados.
-                  </p>
-                )}
-              </section>
-            ))}
-          </div>
-        ) : (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '28px 16px',
-              background: URJC.grisSuave,
-              borderRadius: '10px',
-              borderLeft: `4px solid ${URJC.rojo}`,
-            }}
-          >
-            <p style={{ fontSize: '18px', color: URJC.texto, margin: '0 0 8px', fontWeight: 'bold' }}>
-              No hay datos de salud registrados.
-            </p>
-            <p style={{ fontSize: '14px', color: URJC.textoSuave, margin: 0 }}>
-              Cuando haya datos del Equipo 2, aparecerán aquí organizados por apartados.
-            </p>
-          </div>
-        )}
+      <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'grid', width: '100%', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+          {CAMPOS_SALUD.map((campo) => (
+            <div key={campo.clave} style={{ background: URJC.rojoSuave, borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '30px', marginBottom: '6px' }}>{campo.icono}</div>
+              <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.06em', color: URJC.rojoOscuro, fontWeight: 'bold', marginBottom: '8px' }}>
+                {campo.etiqueta}
+              </div>
+              <div style={{ fontSize: '26px', fontWeight: 'bold', color: URJC.texto }}>
+                {salud[campo.clave]}
+                {campo.unidad && <span style={{ fontSize: '14px', color: URJC.textoSuave, marginLeft: '4px' }}>{campo.unidad}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
       </div>
 
-      <div style={{ padding: '0 24px 24px' }}>
+      <div style={{ padding: '0 24px 24px', display: 'flex', justifyContent: 'center' }}>
         <button
           type="button"
           onClick={onVolver}
@@ -525,7 +597,7 @@ function App() {
 
         <main style={{ maxWidth: '720px', margin: '40px auto', padding: '0 16px' }}>
           {vista === 'perfil' && <PerfilView session={session} onVolver={() => setVista('inicio')} />}
-          {vista === 'salud' && <SaludView session={session} onVolver={() => setVista('inicio')} />}
+          {vista === 'salud' && <SaludView onVolver={() => setVista('inicio')} />}
           {vista === 'inicio' && (
             <section style={{ ...tarjeta, padding: '28px' }}>
               <h2 style={{ marginTop: 0, color: URJC.rojo }}>¡Sesión iniciada!</h2>
