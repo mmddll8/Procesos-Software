@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth, type UserSession } from './context/AuthContext';
 import MainMenu from './mainmenu';
 
-type Vista = 'inicio' | 'perfil' | 'salud';
+type Vista = 'inicio' | 'perfil' | 'salud' | 'recuperar';
 
 // Colores institucionales de la URJC
 const URJC = {
@@ -374,7 +374,7 @@ function SaludView({ onVolver }: { onVolver: () => void }) {
         </div>
         <div>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.85 }}>Mi salud</div>
-          <h2 style={{ margin: '4px 0 0', fontSize: '24px' }}>Datos básicos de salud</h2>
+          <h2 style={{ margin: '4px 0 0', fontSize: '24px', color:'#fff' }}>Datos básicos de salud</h2>
         </div>
       </div>
 
@@ -439,60 +439,44 @@ function App() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationFailed, setVerificationFailed] = useState(false);
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
 
-  // Detectar si el usuario abre la App desde el enlace del email (?token=...)
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const token = queryParams.get('token');
-
-    if (token) {
-      handleEmailVerification(token);
-    }
-  }, []);
-
-  const handleEmailVerification = async (token: string) => {
+  const handleEmailVerification = async () => {
     setIsVerifying(true);
     setError('');
     setSuccessMessage('');
-    setVerificationFailed(false);
 
     try {
-      const result = await verifyEmail(token);
+      const result = await verifyEmail(email, verificationCode);
 
       if (result.success) {
-        setSuccessMessage('¡Correo confirmado con éxito! Ya puedes acceder a todas las funcionalidades de la plataforma.');
+        setSuccessMessage('¡Correo confirmado con éxito! Ya puedes iniciar sesión.');
+        setVerificationPending(false);
+        setVerificationCode('');
       } else {
-        setVerificationFailed(true);
-        if (result.expired) {
-          setError('El enlace de verificación ha expirado. Solicita uno nuevo a continuación.');
-        } else {
-          setError('El enlace de verificación no es válido o ya ha sido utilizado.');
-        }
+        setError(result.message ?? 'El código no es válido o ha caducado. Solicita uno nuevo.');
       }
     } catch {
-      setVerificationFailed(true);
-      setError('Ocurrió un error al verificar el correo electrónico.');
+      setError('Ocurrió un error al verificar el código.');
     } finally {
       setIsVerifying(false);
-      window.history.replaceState({}, document.title, window.location.pathname);
     }
   };
 
   const handleResendEmail = async () => {
     if (!email) {
-      setError('Por favor, introduce tu email para reenviar el enlace de verificación.');
+      setError('Por favor, introduce tu email para reenviar el código de verificación.');
       return;
     }
     setError('');
     setSuccessMessage('');
 
-    const sent = await resendVerificationEmail(email);
-    if (sent) {
-      setSuccessMessage('Se ha enviado un nuevo enlace de verificación a tu correo.');
-      setVerificationFailed(false);
+    const result = await resendVerificationEmail(email);
+    if (result.success) {
+      setSuccessMessage('');
     } else {
-      setError('No se pudo enviar el correo de verificación. Revisa el email introducido.');
+      setError(result.message ?? 'No se pudo completar la verificación de demostración.');
     }
   };
 
@@ -507,7 +491,7 @@ function App() {
         return;
       }
 
-      const success = await register({
+      const result = await register({
         nombre,
         email,
         password,
@@ -518,10 +502,11 @@ function App() {
         aceptaTerminos
       });
 
-      if (!success) {
-        setError('Error al crear la cuenta. Inténtalo de nuevo.');
+      if (!result.success) {
+        setError(result.message ?? 'Error al crear la cuenta. Inténtalo de nuevo.');
       } else {
-        setSuccessMessage('Registro realizado con éxito. Te hemos enviado un correo de verificación para activar tu cuenta.');
+        setSuccessMessage('Registro realizado.');
+        setVerificationPending(true);
         setIsRegister(false);
       }
     } else {
@@ -531,7 +516,7 @@ function App() {
       if (!isSuccess) {
         if (typeof result === 'object' && result.emailNotVerified) {
           setError('Debes confirmar tu correo electrónico antes de iniciar sesión.');
-          setVerificationFailed(true);
+          setVerificationPending(true);
         } else {
           setError('Usuario o contraseña incorrectos');
         }
@@ -543,7 +528,8 @@ function App() {
     setIsRegister(!isRegister);
     setError('');
     setSuccessMessage('');
-    setVerificationFailed(false);
+    setVerificationPending(false);
+    setVerificationCode('');
     setNombre('');
     setEmail('');
     setPassword('');
@@ -557,10 +543,8 @@ function App() {
 
   const handleLogout = () => {
     logout();
-    setIsRegister(false);
     setError('');
     setSuccessMessage('');
-    setVerificationFailed(false);
     setNombre('');
     setEmail('');
     setPassword('');
@@ -570,8 +554,28 @@ function App() {
     sethasDietaryPreferences(false);
     setPreferenciasDieteticas('');
     setAceptaTerminos(false);
+    setVerificationPending(false);
+    setVerificationCode('');
     setVista('inicio');
   };
+
+  // ==========================================
+  // RENDERIZADO DE VISTA DE RECUPERACIÓN (PRÁCTICA)
+  // ==========================================
+  if (!session && vista === 'recuperar') {
+    return (
+      <div style={{ maxWidth: '400px', margin: '60px auto', padding: '20px', fontFamily: 'sans-serif', border: '1px solid #ccc', borderRadius: '8px' }}>
+        <h2 style={{ textAlign: 'center' }}>Healthy Life — URJC</h2>
+        <RecuperarClaveView 
+          onVolver={() => {
+            setError('');
+            setSuccessMessage('');
+            setVista('inicio');
+          }} 
+        />
+      </div>
+    );
+  }
 
   // Con sesión iniciada
   if (session) {
@@ -614,7 +618,7 @@ function App() {
 
       {isVerifying ? (
         <div style={{ textAlign: 'center', padding: '20px' }}>
-          <p>Verificando tu correo electrónico...</p>
+          <p>Verificando tu código...</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -623,13 +627,31 @@ function App() {
           {error && <p style={{ fontSize: '14px', margin: '0', color: '#d9534f' }}>{error}</p>}
           {successMessage && <p style={{ fontSize: '14px', margin: '0', color: '#5cb85c' }}>{successMessage}</p>}
 
-          {verificationFailed && (
+          {verificationPending && (
+            <>
+              <p>Introduce el código de verificación para {email}.</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="Código de verificación"
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                aria-label="Código de verificación"
+              />
+              <button type="button" onClick={handleEmailVerification} disabled={verificationCode.length !== 4}>
+                Verificar código
+              </button>
+            </>
+          )}
+
+          {verificationPending && (
             <button
               type="button"
               onClick={handleResendEmail}
               style={{ padding: '8px', backgroundColor: '#f0ad4e', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
             >
-              Solicitar nuevo enlace de verificación
+              Ver instrucciones de verificación
             </button>
           )}
 
@@ -687,11 +709,75 @@ function App() {
             {isRegister ? 'Registrarse' : 'Entrar'}
           </button>
 
+          {/* BOTÓN INTERCEPTOR DE LA HU: Sólo aparece en la vista de Login */}
+          {!isRegister && (
+            <p 
+              onClick={() => {
+                setError('');
+                setSuccessMessage('');
+                setVista('recuperar');
+              }} 
+              style={{ textAlign: 'center', cursor: 'pointer', fontSize: '14px', color: '#0056b3', textDecoration: 'underline', margin: '4px 0 0' }}
+            >
+              ¿Olvidaste tu contraseña?
+            </p>
+          )}
+
           <p onClick={toggleForm} style={{ textAlign: 'center', cursor: 'pointer', fontSize: '14px', marginTop: '10px', textDecoration: 'underline' }}>
             {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
           </p>
         </form>
       )}
+    </div>
+  );
+}
+
+// ==========================================
+// NUEVO COMPONENTE AUXILIAR PARA LA HU DE RECUPERACIÓN
+// ==========================================
+function RecuperarClaveView({ onVolver }: { onVolver: () => void }) {
+  const [email, setEmail] = useState('');
+  const [enviado, setEnviado] = useState(false);
+
+  const manejarEnvio = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Simulación por consola obligatoria de la práctica académica
+    console.log(`[SIMULACIÓN SMTP] Enviando email a: ${email}`);
+    console.log(`[SIMULACIÓN SMTP] URL generada: http://localhost:5173/reset?email=${encodeURIComponent(email)}`);
+    setEnviado(true);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+      <h3>Recuperar Contraseña</h3>
+      {!enviado ? (
+        <form onSubmit={manejarEnvio} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#555', lineHeight: '1.4' }}>
+            Introduce tu dirección de correo electrónico para recibir un enlace de restablecimiento de contraseña.
+          </p>
+          <input
+            type="email"
+            placeholder="Introduce tu Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ padding: '8px' }}
+            required
+          />
+          <button type="submit" style={{ padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', backgroundColor: '#c8102e', color: '#fff' }}>
+            Enviar enlace
+          </button>
+        </form>
+      ) : (
+        /* Cumple con el criterio de seguridad de tu imagen de no revelar si existe el correo */
+        <div style={{ padding: '10px', backgroundColor: '#fdecef', borderRadius: '4px', borderLeft: '4px solid #c8102e' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#c8102e', fontWeight: 'bold' }}>
+            Si el correo está registrado, recibirás un enlace temporal para cambiar la clave.
+          </p>
+        </div>
+      )}
+      <p onClick={onVolver} style={{ textAlign: 'center', cursor: 'pointer', fontSize: '14px', marginTop: '10px', textDecoration: 'underline', color: '#555' }}>
+        Volver al Control de Acceso
+      </p>
     </div>
   );
 }

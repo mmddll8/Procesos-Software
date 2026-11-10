@@ -32,12 +32,12 @@ export interface RegistrationData extends UserPreferences {
 export interface AuthContextType {
   session: UserSession | null;
   login: (email: string, pass: string) => Promise<boolean | { success: boolean; emailNotVerified?: boolean }>;
-  register: (data: RegistrationData) => Promise<boolean>;
+  register: (data: RegistrationData) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   
   // Verificación por correo
-  verifyEmail: (token: string) => Promise<{ success: boolean; expired?: boolean }>;
-  resendVerificationEmail: (email: string) => Promise<boolean>;
+  verifyEmail: (email: string, code: string) => Promise<{ success: boolean; message?: string }>;
+  resendVerificationEmail: (email: string) => Promise<{ success: boolean; message?: string }>;
 
   // HU-06: Editar perfil
   updateProfile: (updatedData: Partial<UserSession>) => Promise<{ success: boolean; message?: string }>;
@@ -89,10 +89,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (data: RegistrationData): Promise<boolean> => {
+  const register = async (data: RegistrationData): Promise<{ success: boolean; message?: string }> => {
     try {
       if (!data.aceptaTerminos) {
-        return false;
+        return { success: false, message: 'Debes aceptar los términos y la política de privacidad.' };
       }
 
       const cleanName = data.nombre.toLowerCase().trim().replace(/\s+/g, '.');
@@ -113,49 +113,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         termsVersion: TERMS_VERSION
       };
 
-      setLocalUsers((prevUsers) => {
-        const updatedUsers = [...prevUsers, newUser];
-        localStorage.setItem('hl_users', JSON.stringify(updatedUsers));
-        return updatedUsers;
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
       });
-
-      try {
-        const response = await fetch('/api/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newUser)
-        });
-
-        if (!response.ok) {
-          console.warn('El usuario se ha guardado localmente, pero no en el mock JSON.');
-        }
-      } catch {
-        console.warn('No se pudo contactar con el mock de API; se conserva el usuario localmente.');
+      const result = await response.json() as { error?: string };
+      if (!response.ok) {
+        return { success: false, message: result.error ?? 'No se pudo crear la cuenta.' };
       }
 
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const verifyEmail = async (token: string): Promise<{ success: boolean; expired?: boolean }> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    if (token === 'invalid_or_expired_token' || token.includes('invalid') || token.includes('expired')) {
-      return { success: false, expired: token.includes('expired') };
-    }
-
-    if (token && token.length > 0) {
+      setLocalUsers((prevUsers) => [...prevUsers, newUser]);
       return { success: true };
+    } catch (error) {
+      console.error('Error al registrar la cuenta:', error);
+      return { success: false, message: 'No se pudo contactar con el servidor para crear la cuenta.' };
     }
-
-    return { success: false };
   };
 
-  const resendVerificationEmail = async (email: string): Promise<boolean> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return email.length > 0 && email.includes('@');
+  const verifyEmail = async (email: string, code: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const response = await fetch('/api/verification/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code })
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) {
+        return { success: false, message: result.error ?? 'El código no es válido o ha caducado.' };
+      }
+
+      setLocalUsers((users) => users.map((user) =>
+        user.email.toLowerCase() === email.trim().toLowerCase() ? { ...user, emailVerified: true } : user
+      ));
+      return { success: true };
+    } catch (error) {
+      console.error('Error al verificar el código de correo:', error);
+      return { success: false, message: 'No se pudo contactar con el servidor para verificar el código.' };
+    }
+  };
+
+  const resendVerificationEmail = async (email: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const response = await fetch('/api/verification/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const result = await response.json() as { error?: string };
+      return response.ok
+        ? { success: true }
+        : { success: false, message: result.error ?? 'No se pudo obtener el código de demostración.' };
+    } catch (error) {
+      console.error('Error al obtener el código de demostración:', error);
+      return { success: false, message: 'No se pudo contactar con el servidor para obtener el código.' };
+    }
   };
 
   const updateProfile = async (updatedData: Partial<UserSession>): Promise<{ success: boolean; message?: string }> => {
