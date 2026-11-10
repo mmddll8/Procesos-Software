@@ -139,6 +139,17 @@ Open the local URL displayed in the terminal to access the preview.
 - Sprint 2 (profile, basic data, terms and privacy, password recovery) is complete.
 - Sprint 3 (password change, language and units, profile visibility, account deletion) is planned.
 
+  
+## Definition of Done
+A user story is considered done when:
+
+- All of its acceptance criteria are met.
+- The code has been reviewed by another team member.
+- It has been tested and works without errors.
+- It has been merged into the main branch.
+- The Product Owner has reviewed and approved it.
+
+
 ## Acceptance Criteria Verification (Product Owner)
 
 - I have reviewed the implemented functionality against the defined acceptance criteria.
@@ -148,7 +159,6 @@ Open the local URL displayed in the terminal to access the preview.
   - Business requirements have been fulfilled.
   - Expected user workflows have been validated.
   - No critical issues preventing acceptance have been identified.
-
 
 Based on the review, I accept this User Story and confirm that it is ready for release.
 
