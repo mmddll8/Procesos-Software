@@ -75,6 +75,44 @@ const usersApi = (): Plugin => {
         }
       })
 
+      // HU-16 / SCRUM-95: eliminar la cuenta y todos sus datos personales.
+      // Comparte ruta con el registro (POST): cada middleware atiende solo su método y hace next() con el resto.
+      server.middlewares.use('/api/users', async (req, res, next) => {
+        if (req.method !== 'DELETE') {
+          next()
+          return
+        }
+
+        try {
+          const body = await readBody(req) as { id_user?: unknown; password?: unknown }
+          if (!body || typeof body.id_user !== 'string' || !body.id_user.trim() || typeof body.password !== 'string' || !body.password) {
+            respond(res, 400, { error: 'Faltan datos obligatorios para eliminar la cuenta.' })
+            return
+          }
+
+          const users = JSON.parse(await fs.readFile(usersFile, 'utf8')) as UserRecord[]
+          const user = users.find((item) => item.id_user === body.id_user)
+          if (!user) {
+            respond(res, 404, { error: 'No existe ninguna cuenta con ese identificador.' })
+            return
+          }
+
+          // Sin tokens, la contraseña es la prueba de que quien borra es el propio usuario
+          if (user.password !== body.password) {
+            respond(res, 401, { error: 'La contraseña no es correcta.' })
+            return
+          }
+
+          // Borrado en cascada: consentimiento, preferencias, salud, rutinas... viven dentro del registro
+          const remainingUsers = users.filter((item) => item.id_user !== body.id_user)
+          await fs.writeFile(usersFile, `${JSON.stringify(remainingUsers, null, 2)}\n`)
+          respond(res, 200, { success: true })
+        } catch (error) {
+          console.error('Error al eliminar la cuenta:', error)
+          respond(res, 500, { error: 'No se pudo eliminar la cuenta.' })
+        }
+      })
+
       server.middlewares.use('/api/verification/resend', async (req, res, next) => {
         if (req.method !== 'POST') {
           next()

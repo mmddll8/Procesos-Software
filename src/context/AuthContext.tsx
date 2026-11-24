@@ -41,6 +41,9 @@ export interface AuthContextType {
 
   // HU-06: Editar perfil
   updateProfile: (updatedData: Partial<UserSession>) => Promise<{ success: boolean; message?: string }>;
+
+  // HU-16: Eliminar cuenta
+  deleteAccount: (password: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -188,6 +191,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  // HU-16: borra la cuenta en el servidor. No cierra la sesión: eso lo hace la interfaz
+  // cuando el usuario confirma el mensaje de éxito (SCRUM-96).
+  const deleteAccount = async (password: string): Promise<{ success: boolean; message?: string }> => {
+    if (!session) return { success: false, message: 'No existe sesión activa.' };
+    if (!password) return { success: false, message: 'Introduce tu contraseña para confirmar.' };
+
+    try {
+      const response = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_user: session.id_user, password })
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) {
+        return { success: false, message: result.error ?? 'No se pudo eliminar la cuenta.' };
+      }
+
+      setLocalUsers((prev) => prev.filter((u) => u.id_user !== session.id_user));
+      return { success: true };
+    } catch (error) {
+      console.error('Error al eliminar la cuenta:', error);
+      return { success: false, message: 'No se pudo contactar con el servidor para eliminar la cuenta.' };
+    }
+  };
+
   const logout = () => {
     setSession(null);
     localStorage.removeItem('hl_session');
@@ -203,7 +231,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         verifyEmail,
         resendVerificationEmail,
-        updateProfile
+        updateProfile,
+        deleteAccount
       }}
     >
       {children}
