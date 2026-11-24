@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth, type UserSession } from './context/AuthContext';
 import MainMenu from './mainmenu';
+import DeleteAccountDialog from './DeleteAccountDialog';
 
 type Vista = 'inicio' | 'perfil' | 'salud' | 'recuperar';
 
@@ -53,8 +54,19 @@ const DATOS_SALUD_EJEMPLO: Record<ClaveSalud, number> = {
 };
 
 // HU-06 y HU-08: vista de Perfil con soporte para edición y guardado
-function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () => void }) {
+function PerfilView({
+  session,
+  onVolver,
+  onCuentaEliminada,
+}: {
+  session: UserSession;
+  onVolver: () => void;
+  onCuentaEliminada: () => void;
+}) {
   const { updateProfile } = useAuth();
+
+  // HU-16: diálogo de confirmación para eliminar la cuenta
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
 
   // Estados locales para la edición del perfil (SCRUM-46 / SCRUM-47)
   const [nombre, setNombre] = useState(session.nombre || '');
@@ -208,7 +220,32 @@ function PerfilView({ session, onVolver }: { session: UserSession; onVolver: () 
               Volver al inicio
             </button>
           </div>
+
+          {/* HU-16 / SCRUM-94: zona de eliminación de la cuenta */}
+          <div style={{ marginTop: '12px', paddingTop: '20px', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <h3 style={{ margin: 0, color: URJC.rojo }}>⚠️ Eliminar cuenta</h3>
+            <p style={{ margin: 0, fontSize: '14px', color: URJC.textoSuave }}>
+              Borra tu cuenta y todos tus datos personales de Healthy Life. Esta acción no se puede deshacer.
+            </p>
+            <div>
+              <button
+                type="button"
+                onClick={() => setConfirmandoBorrado(true)}
+                style={{ padding: '10px 18px', border: `2px solid ${URJC.rojo}`, borderRadius: '8px', background: URJC.rojoSuave, color: URJC.rojoOscuro, cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}
+              >
+                Eliminar cuenta
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+
+      {confirmandoBorrado && (
+        <DeleteAccountDialog
+          colores={URJC}
+          onCancel={() => setConfirmandoBorrado(false)}
+          onDeleted={onCuentaEliminada}
+        />
       )}
 
       {editandoPerfil && (
@@ -596,7 +633,14 @@ function App() {
         </header>
 
         <main style={{ maxWidth: '720px', margin: '40px auto', padding: '0 16px' }}>
-          {vista === 'perfil' && <PerfilView session={session} onVolver={() => setVista('inicio')} />}
+          {vista === 'perfil' && (
+            <PerfilView
+              session={session}
+              onVolver={() => setVista('inicio')}
+              // SCRUM-96 (Jaime): tras borrar la cuenta, cerrar sesión y volver al login
+              onCuentaEliminada={handleLogout}
+            />
+          )}
           {vista === 'salud' && <SaludView onVolver={() => setVista('inicio')} />}
           {vista === 'inicio' && (
             <section style={{ ...tarjeta, padding: '28px' }}>
